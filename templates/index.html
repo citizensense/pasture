@@ -1,0 +1,244 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Citizen Sense Platform</title>
+    
+    <!-- GENERAL -->
+    <link rel="stylesheet" href="/public/css/pure-min.css">
+
+	<!-- GRAPH -->
+	<link type="text/css" rel="stylesheet" href="/public/css/jquery-ui.css">
+	<link type="text/css" rel="stylesheet" href="/public/css/graph.css">
+	<link type="text/css" rel="stylesheet" href="/public/css/detail.css">
+	<link type="text/css" rel="stylesheet" href="/public/css/legend.css">
+	<link type="text/css" rel="stylesheet" href="/public/css/extensions.css">
+ 	
+ 	<!-- MAP -->
+	<link rel="stylesheet" href="/public/css/leaflet.css" />
+
+</head>
+
+<body>
+
+<div id="header" class="shadow">
+	<div id="mainmenu" class="pure-menu pure-menu-open pure-menu-horizontal">
+	    <a id="maintitle" href="#" class="pure-menu-heading">CS PLatform</a>
+	    <ul>
+	        <li><a id="uploadbutton" href="#">Upload</a></li> 
+	        <li><a id="loginbutton" href="#">Sign In</a></li>
+	    </ul>
+	</div>
+</div>
+
+<div id="map"></div>
+<div id="charts"> </div>
+
+<div id="uploadform" class="centeredform">
+    <form id="uploadformform" class="pure-form pure-form-stacked" action="/api" method="post" enctype="multipart/form-data">
+        <fieldset>
+            <legend>File Upload <a href="#">x</a></legend>
+            <div class="pad">
+                <label for="upload-gps">GPS (Click Map)</label>
+                <input id="upload-gps" class="fullwidth" type="text" name="gps" value="">  
+                
+                <label for="file">Select file to upload</label>
+                <input id="file" type="file" name="myFile" />
+
+                <button id="upload" class="pure-button pure-button-primary">Upload</button>
+            </div>
+        </fieldset>
+    </form>
+</div>
+
+<div id="loginform" class="centeredform"> 
+    <form class="pure-form pure-form-stacked">
+        <fieldset>
+            <legend>A Stacked Form</legend>
+            <div class="pad">
+                <label for="email">Email</label>
+                <input id="email" type="email" placeholder="Email">
+
+                <label for="password">Password</label>
+                <input id="password" type="password" placeholder="Password">
+
+                <label for="state">State</label>
+                <select id="state">
+                    <option>AL</option>
+                    <option>CA</option>
+                    <option>IL</option>
+                </select>
+
+                <label for="remember" class="pure-checkbox">
+                    <input id="remember" type="checkbox"> Remember me
+                </label>
+
+                <button type="submit" class="pure-button pure-button-primary">Sign in</button>
+            </div>
+        </fieldset>
+    </form>
+
+</div>
+
+<div id="messages">
+    <h4>Messages</h4>
+    <div id="messagebox">
+    </div>
+</div>
+
+<div id="Data">
+    <h4>Nodes</h4>
+</div>
+
+<script src="/public/js/d3.v3.js"></script>
+<script src="/public/js/jquery.min.js"></script>
+<script>jQuery.noConflict();</script>
+<script src="/public/js/jquery-ui.min.js"></script>
+<script src="/public/js/Rickshaw.js"></script>
+<script src="/public/js/Rickshaw.Class.js"></script>
+<script src="/public/js/Rickshaw.Compat.ClassList.js"></script>
+<script src="/public/js/Rickshaw.Graph.js"></script>
+<script src="/public/js/Rickshaw.Graph.Renderer.js"></script>
+<script src="/public/js/Rickshaw.Graph.Renderer.Area.js"></script>
+<script src="/public/js/Rickshaw.Graph.Renderer.Line.js"></script>
+<script src="/public/js/Rickshaw.Graph.Renderer.Bar.js"></script>
+<script src="/public/js/Rickshaw.Graph.Renderer.ScatterPlot.js"></script>
+<script src="/public/js/Rickshaw.Graph.Renderer.Stack.js"></script>
+<script src="/public/js/Rickshaw.Graph.RangeSlider.js"></script>
+<script src="/public/js/Rickshaw.Graph.RangeSlider.Preview.js"></script>
+<script src="/public/js/Rickshaw.Graph.HoverDetail.js"></script>
+<script src="/public/js/Rickshaw.Graph.Annotate.js"></script>
+<script src="/public/js/Rickshaw.Graph.Legend.js"></script>
+<script src="/public/js/Rickshaw.Graph.Axis.Time.js"></script>
+<script src="/public/js/Rickshaw.Graph.Behavior.Series.Toggle.js"></script>
+<script src="/public/js/Rickshaw.Graph.Behavior.Series.Order.js"></script>
+<script src="/public/js/Rickshaw.Graph.Behavior.Series.Highlight.js"></script>
+<script src="/public/js/Rickshaw.Graph.Smoother.js"></script>
+<script src="/public/js/Rickshaw.Fixtures.Time.js"></script>
+<script src="/public/js/Rickshaw.Fixtures.Time.Local.js"></script>
+<script src="/public/js/Rickshaw.Fixtures.Number.js"></script>
+<script src="/public/js/Rickshaw.Fixtures.RandomData.js"></script>
+<script src="/public/js/Rickshaw.Fixtures.Color.js"></script>
+<script src="/public/js/Rickshaw.Color.Palette.js"></script>
+<script src="/public/js/Rickshaw.Graph.Axis.Y.js"></script>
+<script src="/public/js/extensions.js"></script>
+<script src="/public/js/graph.js"></script>
+<script src="/public/js/leaflet.js"></script>
+
+<script>
+// MENU FUNCTIONS
+jQuery(document).ready(function(){
+    var $ = jQuery;
+    
+    // MAIN MENU CONTROLS
+    // Show/Hide upload form
+    $("#uploadbutton").click(function(){
+         $('#loginform').hide(); 
+         $("#uploadform").toggle();
+    });
+    $('#uploadbutton').toggle(function () {
+        $('#uploadform').hide();
+    }, function () {
+        $('#uploadform').show();
+    });
+
+    // Show / Hide login form
+    $("#loginbutton").click(function(){
+        $('#uploadform').hide();   
+        $("#logininform").toggle();
+    });
+    $('#loginform').toggle(function () {
+        $('#loginform').hide();
+    }, function () {
+        $('#loginform').show();
+    });
+    
+    // LOAD NODES
+    function loadnodes(){
+        $.ajax({
+            url: '/api/view/all',
+            type: 'GET',
+            async: false,
+            cache: false,
+            contentType: false,
+            processData: false,
+            success: function (data) {
+                $("#messagebox").prepend('<div class="msg">'+data+'</div>');  
+            }
+        });
+    }
+
+    // SUBMIT UPLOAD FORM
+    function submitmyform(formid){
+        $(formid).submit(function(event){
+            //disable the default form submission
+            event.preventDefault();
+            //grab all form data  
+            var formData = new FormData($(this)[0]);
+            $.ajax({
+                url: '/api/create',
+                type: 'POST',
+                data: formData,
+                async: false,
+                cache: false,
+                contentType: false,
+                processData: false,
+                success: function (data) {
+                    $("#messagebox").prepend('<div class="msg">'+data+'</div>');  
+                }
+            });
+            return false;
+        });
+    }
+    
+    // GENERATE THE PAGE
+    loadnodes();
+    submitmyform('#uploadformform');
+
+});
+
+// MAP HELPER FUNCTIONS
+/*  Add a dot to the current map. Example usage: 
+	addmarker([51.54193, 0.71995], 5, {color: 'red',fillColor: '#f03',fillOpacity: 0.5} );       */
+function addmarker(latlng, size, style){
+	return L.circle(latlng, size, style).addTo(map); 
+}
+/*  Add a popup. Example usage: 
+	addpopup([51.54193, 0.71995], "A message <strong>to</strong> display."); */
+function addpopup(latlng, content) { 
+	thispopup = L.popup();   
+	return thispopup.setLatLng(latlng).setContent(content).addTo(map);
+} 
+/* 	Perform a function when the map is clicked: Example usage: 
+    map.on('click', onMapClick);   */   
+function onMapClick(e) { 
+    var str = e.latlng.toString().replace('LatLng(', '').replace(')', '').replace(' ', '');
+    jQuery('#upload-gps').val(str);
+	return addpopup(e.latlng, "You clicked the map at:<br />" + e.latlng.toString())     
+}  
+
+// CREATE THE MAP
+// Setup the base map
+var map = L.map('map').setView([51.505, -0.09], 13);
+var tilelayer = "http://{s}.tiles.mapbox.com/v3/openplans.map-g4j0dszr/{z}/{x}/{y}.png";
+//var tilelayer = "http://{s}.tile.stamen.com/watercolor/{z}/{x}/{y}.jpg"; //L.control.scale().addTo(map);
+L.tileLayer(tilelayer, {
+    attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://mapbox.com">Mapbox</a>',
+    maxZoom: 18
+}).addTo(map);
+// Style
+var style = {color: 'green',fillColor: 'green',fillOpacity: 0.5}
+var size = 50; 
+// Add markers
+addmarker([51.47502,-0.03605], size, style);
+map.on('click', onMapClick); 
+
+
+// Create the graphs
+//var mygraph = new Graphkit("chart1", 100);  // id, height, data
+//mygraph.testdata();
+
+</script>
+
+</body></html>

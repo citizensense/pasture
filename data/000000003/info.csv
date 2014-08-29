@@ -1,0 +1,2 @@
+#fid,uuid,timestamp,csvfile,device,lat,lon,title,tags,submissiondata
+000000003,c8314d4e-1975-11e4-82b4-7c7a91472dae,1406895438,smallspecdsample.csv,,51.48683,-0.06248,,,{"myFile": "smallspecdsample.csv"&#44 "gps": "51.48683&#44-0.06248"}
