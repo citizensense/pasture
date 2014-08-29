@@ -1,0 +1,10 @@
+body {
+  background-color: blue;
+}
+
+#the-string {
+    display: none;
+}
+div.msg{
+    border-bottom:1px solid #ccc;
+}
