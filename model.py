@@ -32,18 +32,18 @@ class Model:
         jsondump = json.dumps(data['submitted'])
         data['info']['submissiondata'] = jsondump.replace(',', '&#44')
         # Check what/who submitted this data, parse it, then fill in our data structure
-        plugins=(UploadformSubmission, SpecGatewaySubmission )
+        plugins=(UploadformSubmission, SpecGatewaySubmission, CitizenSenseKitSubmission)
         for plugin in plugins:
             obj = plugin()
             parsedoutput = obj.checksubmission(data)
             if parsedoutput is not False:
                 break
         # Now if we have a csv file, lets check what type and prep for view
-        for plugin in plugins:
-            obj = plugin()
-            parsedoutput = obj.checkcsvfile(data)
-            if parsedoutput is not False:
-                break
+        #for plugin in plugins:
+        #    obj = plugin()
+        #    parsedoutput = obj.checkcsvfile(data)
+        #    if parsedoutput is not False:
+        #        break
         # Very Dirty hack! Get the order of the data dict as it is written above
         # FIX: Really don't need this, just refactor dict into a list/tuple
         w1 = "#START"
@@ -72,10 +72,14 @@ class Model:
         return data
 
     def view_all(self):
+        # TODO: Abstract subprocess calls so a global try/except can be applied
         # Grab all the info.csv files via the commandline
-        com = "cat data/*/info.csv" # Grab the contents of all the info.csv files
-        com += " | grep -v ^# " # Remove all the commented out elements
-        com += " | cut -d , -f 1,6,7" # Grab the lan/lon cols
+        com = "cat data/*/info.csv"     # Grab the contents of all the info.csv files
+        com += " | grep -v ^# "         # Remove all the commented out elements
+        com += " | cut -d , -f 1,6,7"   # Grab the lan/lon cols
+        com += " | sed 's/.*/\"&],/' "  # Format so we have a json string
+        com += " | sed 's/,/\":[/1' "   # Format so we have a json string
+        com += " | sed '$s/,$//'  "     # Delete the last character from the string
         thebytes = subprocess.check_output(com, shell=True)
         thestr = '{'+thebytes.decode("utf-8").strip()+'}'
         return thestr
@@ -93,7 +97,7 @@ class UploadformSubmission:
         self.data = data
         # List of field names we are expecting and specify 
         expectedkeys = ['gps', 'myFile']
-        # Check if we recieved the correct number of fields
+        # Check if we recieved the correct number of fields. TODO: This is lazy, check names!
         if len(expectedkeys) != len(data['submitted']):
             print('THIS AINT THE UPLOAD FORM')
             return False
@@ -101,7 +105,7 @@ class UploadformSubmission:
         for key in expectedkeys:
             var = getattr(self, "format_"+key)()
         # Return the data
-        print('PARSE UPLOAD FORM:' )
+        self.data['success']['msg'] = 'Recieved website form submission'
         return self.data
     
     # [REQUIRED METHOD]
@@ -143,10 +147,28 @@ class SpecGatewaySubmission:
 
     # Check if submission is recognised, if it is, return structured data
     def checksubmission(self, data):
-        print('PARSE SPEC GATEWAY')
+        print('THIS AINT THE SPECK GATEWAY APPLICATION')
         return False
 
     def checkcsvfile(self, data):
         return False
 
+#================== Citizen Sense Kit submission ============================#
+class CitizenSenseKitSubmission:
+
+    # Check if submission is recognised, if it is, return structured data
+    def checksubmission(self, data):
+        msg = ''
+        self.data = data
+        # List of field names we are expecting and specify: TODO: Also count the number of fields
+        expectedkeys = ['uid', 'deviceserial', 'data']
+        for key in data['submitted'].keys():
+            if key not in expectedkeys: 
+                return False
+        # Now check we have a node to post to
+        msg = 'A Citizen Sense Kit submission'
+        #if exists(uid):
+        # And save the new data to file
+        self.data['success']['msg'] = msg
+        return self.data
 

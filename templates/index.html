@@ -13,28 +13,52 @@
 	<link type="text/css" rel="stylesheet" href="/public/css/graph.css">
 	<link type="text/css" rel="stylesheet" href="/public/css/detail.css">
 	<link type="text/css" rel="stylesheet" href="/public/css/legend.css">
-	<link type="text/css" rel="stylesheet" href="/public/css/extensions.css">
+	<!-- <link type="text/css" rel="stylesheet" href="/public/css/extensions.css"> <!--->
  	
  	<!-- MAP -->
 	<link rel="stylesheet" href="/public/css/leaflet.css" />
+
+    <!-- GENERAL -->
+    <link rel="stylesheet" href="/public/css/ant.css" />
 
 </head>
 
 <body>
 
-<div id="header" class="shadow">
+<div id="header">
+	<h1 id="maintitle"><a href="#" class="pure-menu-heading">Frack Box</a></h1>
 	<div id="mainmenu" class="pure-menu pure-menu-open pure-menu-horizontal">
-	    <a id="maintitle" href="#" class="pure-menu-heading">CS PLatform</a>
-	    <ul>
+	   	<ul>
 	        <li><a id="uploadbutton" href="#">Upload</a></li> 
 	        <li><a id="loginbutton" href="#">Sign In</a></li>
 	    </ul>
 	</div>
 </div>
 
-<div id="map"></div>
-<div id="charts"> </div>
+<div id="information" class="shadow">
+    <div class="inner">
+        <div id="nodelist" class="tab">
+            <h2>Nodes</h2>
+        </div>
+        <div id="nodedata">
+            <h2>Data</h2>
+            <div class="content">nowt</div>
+        </div>
+         <div id="messages" class="tab">
+            <h2>Messages</h2>
+            <div id="messagebox">
+            </div>
+        </div>
+        <div id="help">
+            <h2>Help</h2>
+        </div>
+    </div>
+</div>
 
+<div id="map"></div>
+<div id="charts"></div>
+
+<!--
 <div id="uploadform" class="centeredform">
     <form id="uploadformform" class="pure-form pure-form-stacked" action="/api" method="post" enctype="multipart/form-data">
         <fieldset>
@@ -51,7 +75,7 @@
         </fieldset>
     </form>
 </div>
-
+-->
 <div id="loginform" class="centeredform"> 
     <form class="pure-form pure-form-stacked">
         <fieldset>
@@ -79,16 +103,6 @@
         </fieldset>
     </form>
 
-</div>
-
-<div id="messages">
-    <h4>Messages</h4>
-    <div id="messagebox">
-    </div>
-</div>
-
-<div id="Data">
-    <h4>Nodes</h4>
 </div>
 
 <script src="/public/js/d3.v3.js"></script>
@@ -129,31 +143,44 @@
 <script>
 // MENU FUNCTIONS
 jQuery(document).ready(function(){
-    var $ = jQuery;
     
-    // MAIN MENU CONTROLS
-    // Show/Hide upload form
-    $("#uploadbutton").click(function(){
-         $('#loginform').hide(); 
-         $("#uploadform").toggle();
-    });
-    $('#uploadbutton').toggle(function () {
-        $('#uploadform').hide();
-    }, function () {
-        $('#uploadform').show();
-    });
+    // INITIALISE & BUILD THE PAGE
+    function init(){ 
+        $ = jQuery;
+        buildmenu();
+        generatemap();
+        loadnodes();
+        submitmyform('#uploadformform');
+        // Create the graphs
+        //var mygraph = new Graphkit("chart1", 100);  // id, height, data
+        //mygraph.testdata();
+    }
 
-    // Show / Hide login form
-    $("#loginbutton").click(function(){
-        $('#uploadform').hide();   
-        $("#logininform").toggle();
-    });
-    $('#loginform').toggle(function () {
-        $('#loginform').hide();
-    }, function () {
-        $('#loginform').show();
-    });
-    
+    // MAIN MENU CONTROLS
+    function buildmenu(){
+        // Show/Hide upload form
+        $("#uploadbutton").click(function(){
+            $('#loginform').hide(); 
+            $("#uploadform").toggle();
+        });
+        $('#uploadbutton').toggle(function () {
+            $('#uploadform').hide();
+        }, function () {
+            $('#uploadform').show();
+        });
+
+        // Show / Hide login form
+        $("#loginbutton").click(function(){
+            $('#uploadform').hide();   
+            $("#logininform").toggle();
+        });
+        $('#loginform').toggle(function () {
+            $('#loginform').hide();
+        }, function () {
+            $('#loginform').show();
+        });
+    }
+
     // LOAD NODES
     function loadnodes(){
         $.ajax({
@@ -163,9 +190,24 @@ jQuery(document).ready(function(){
             cache: false,
             contentType: false,
             processData: false,
-            success: function (data) {
-                $("#messagebox").prepend('<div class="msg">'+data+'</div>');  
+            success: function (str) {
+                var data = JSON.parse(str);
+                displaynodes(data);
             }
+        });
+    }
+    
+    // DISPLAY LIST OF NODES ON THE MAP
+    function displaynodes(data){
+        $.each(data, function( index, value ) {
+            $("#messagebox").prepend('<hr>'+index+':'+value[0]);
+            var latlng = [value[0], value[1]];
+            var mark=L.marker(latlng, {icon:frackBox, data:'test'}).on('click', onClick).addTo(map);
+            function onClick(e) {
+                console.log(e);
+                var content = e.test;
+                $('#nodedata .content').html('sss'+content);
+            } 
         });
     }
 
@@ -192,52 +234,44 @@ jQuery(document).ready(function(){
         });
     }
     
-    // GENERATE THE PAGE
-    loadnodes();
-    submitmyform('#uploadformform');
-
+    // GENERATE THE MAP & MAP CONTROLS
+    function generatemap(){ 
+        // Setup the base map
+        map = L.map('map').setView([51.505, -0.09], 13);
+        var tilelayer = "http://{s}.tiles.mapbox.com/v3/openplans.map-g4j0dszr/{z}/{x}/{y}.png";
+        //var tilelayer = "http://{s}.tile.stamen.com/watercolor/{z}/{x}/{y}.jpg"; //L.control.scale().addTo(map);
+        L.tileLayer(tilelayer, {
+            attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://mapbox.com">Mapbox</a>',
+            maxZoom: 18
+        }).addTo(map);
+        // Define an icon. Images sourced from: http://preloaders.net
+        frackBox = L.icon({
+            iconUrl: '/public/images/29.gif',
+            shadowUrl: 'public/images/shadow.png',
+            iconSize:     [23, 23], // size of the icon
+            shadowSize:   [50, 50], // size of the shadow
+            iconAnchor:   [-8, -8], // point of the icon which will correspond to marker's location
+            shadowAnchor: [0, 0],  // the same for the shadow
+            popupAnchor:  [20, 0] // point from which the popup should open relative to the iconAnchor
+        });
+        map.on('click', onMapClick);
+    }
+    /*  Add a popup. Example usage: addpopup([51.54193, 0.71995], "A message <strong>to</strong> display."); */
+    function addpopup(latlng, content) { 
+        thispopup = L.popup();   
+        return thispopup.setLatLng(latlng).setContent(content).addTo(map);
+    } 
+    /* 	Perform function when map is clicked: Example: map.on('click', onMapClick);   */   
+    function onMapClick(e) { 
+        var str = e.latlng.toString().replace('LatLng(', '').replace(')', '').replace(' ', '');
+        jQuery('#upload-gps').val(str);
+        return addpopup(e.latlng, "You clicked the map at:<br />" + e.latlng.toString())     
+    }  
+       
+    // BUILD THE PAGE
+    init();
+    
 });
-
-// MAP HELPER FUNCTIONS
-/*  Add a dot to the current map. Example usage: 
-	addmarker([51.54193, 0.71995], 5, {color: 'red',fillColor: '#f03',fillOpacity: 0.5} );       */
-function addmarker(latlng, size, style){
-	return L.circle(latlng, size, style).addTo(map); 
-}
-/*  Add a popup. Example usage: 
-	addpopup([51.54193, 0.71995], "A message <strong>to</strong> display."); */
-function addpopup(latlng, content) { 
-	thispopup = L.popup();   
-	return thispopup.setLatLng(latlng).setContent(content).addTo(map);
-} 
-/* 	Perform a function when the map is clicked: Example usage: 
-    map.on('click', onMapClick);   */   
-function onMapClick(e) { 
-    var str = e.latlng.toString().replace('LatLng(', '').replace(')', '').replace(' ', '');
-    jQuery('#upload-gps').val(str);
-	return addpopup(e.latlng, "You clicked the map at:<br />" + e.latlng.toString())     
-}  
-
-// CREATE THE MAP
-// Setup the base map
-var map = L.map('map').setView([51.505, -0.09], 13);
-var tilelayer = "http://{s}.tiles.mapbox.com/v3/openplans.map-g4j0dszr/{z}/{x}/{y}.png";
-//var tilelayer = "http://{s}.tile.stamen.com/watercolor/{z}/{x}/{y}.jpg"; //L.control.scale().addTo(map);
-L.tileLayer(tilelayer, {
-    attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://mapbox.com">Mapbox</a>',
-    maxZoom: 18
-}).addTo(map);
-// Style
-var style = {color: 'green',fillColor: 'green',fillOpacity: 0.5}
-var size = 50; 
-// Add markers
-addmarker([51.47502,-0.03605], size, style);
-map.on('click', onMapClick); 
-
-
-// Create the graphs
-//var mygraph = new Graphkit("chart1", 100);  // id, height, data
-//mygraph.testdata();
 
 </script>
 
