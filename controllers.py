@@ -79,8 +79,8 @@ class WebService(object):
             # Add "create_node" job to the task manager     
             #cherrypy.config['taskmanager'].add( {'type':'parse_submission', 'data': data} ) 
             data = cherrypy.config['model'].parse_submission(data)  
-            data['success']['code'] = '200 OK'
-            data['success']['msg'] = 'A new node is being analysed and submitted' 
+            # data['success']['code'] = '200 OK'
+            # data['success']['msg'] = 'A new node is being analysed and submitted' 
         else :
             # Delete the data directory
             # TODO: Turn this into a task using filemanager

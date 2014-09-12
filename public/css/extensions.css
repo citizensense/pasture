@@ -1,66 +1,5 @@
-body, html{
-	margin:0px;
-	padding:0px;
-	background:#ccc;
-}
-div, span, p, td {
-	font-family: Arial, sans-serif;
-}
-a,a:link{
-	color:#ccc;
-	text-decoration:none;
-}
-a:visited{
-	color:#ccc;
-}
-a:hover{
-	color:#888;
-}
-.shadow {
-	-webkit-box-shadow: 0px 9px 7px 0px rgba(50, 50, 50, 0.59);
-	-moz-box-shadow:    0px 9px 7px 0px rgba(50, 50, 50, 0.59);
-	box-shadow:         0px 9px 7px 0px rgba(50, 50, 50, 0.59);
-}
-#header{
-	position:fixed;
-	background:#000;
-	margin:0px;
-	padding:8px;
-	right:0px;
-	left:0px;
-	z-index:1001;
-}
 
-/* MESSAGES */
-.msg{
-    border-bottom:1px solid #ccc;
-}
 
-/* MENUS */
-#mainmenu{
-    background:none;
-    font-weight:bold;
-}
-#maintitle{
-    font-size:120%;
-}
-#header ul a,
-#header ul a:link{
-    color:#999;
-}
-
-/* MAP */
-#map{
-   	position:fixed;
-	top:0px;
-	right:0px;
-	bottom:0px;
-	left:0px;
-}
-div.leaflet-top,
-div.leaflet-left{
-	top:6em;
-}
 /* FORMS */
 #uploadform{
 
@@ -138,6 +77,9 @@ div.leaflet-left{
 #messagebox{
     margin:10px;
     margin-top:0px;
+}
+.msg{
+    border-bottom:1px solid #ccc;
 }
 
 /* CHARTS */
