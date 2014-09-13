@@ -1,12 +1,40 @@
 #GENERAL HELPER CLASSES: FileManager, Switch 
-import cherrypy, os, threading, subprocess
+import cherrypy, os, csv, json, threading, subprocess
+from collections import OrderedDict
 
+# TODO: Needs a massive cleanup!!
 #=======MANAGE FILES==========================================================#
 class FileManager:
 
     # initialise the object
     def __init__(self): 
         self.lock = threading.Lock() 
+
+    def grab_filepath(self, fid, filename):
+        datapath = self.grab_datapath(fid) 
+        return self.grab_joinedpath(datapath, filename)
+        
+    def grab_filecontent(self, fid, filename):
+        filepath = self.grab_filepath(fid, filename)
+        if os.path.isfile(filepath):
+            with open (filepath, "r") as myfile:
+                content=myfile.read();
+            return content
+        else:
+            return False
+    
+    # Convert csvfile to a json key:value object
+    # TODO: Convert more than just the first line, its ok for now but...
+    # TODO: Error check!!
+    def grab_csvfile_asjson(self, fid, filename):
+        filepath = self.grab_filepath(fid, filename)
+        array = list(csv.reader(open(filepath)))
+        ordered = OrderedDict()
+        for i in range(len(array[0])):
+            key = array[0][i]
+            value = array[1][i]
+            ordered[key] = value
+        return json.dumps(ordered)
 
     # Generate the filepath to the datadir when given an fid or uuid
     def grab_datapath(self, theid, whichpath='fidpath'):
@@ -24,7 +52,7 @@ class FileManager:
         elif whichpath is 'original':
             return os.path.join(fidpath, 'original')
     
-    # Grab the full path to a file uploaded the the 'original' dir in 'data/fid/original'
+    # Grab the full path to a file uploaded in the 'original' dir in 'data/fid/original'
     def grab_originalfilepath(self, theid, filename):
         originalpath = self.grab_datapath(theid, 'original')
         fullfilepath = os.path.join(originalpath, filename)  
@@ -33,7 +61,7 @@ class FileManager:
         else:
             return fullfilepath
     
-    # Grab the full filwpath when given two segments
+    # Grab the full filepath when given two segments
     def grab_joinedpath(self, left, right):
         return os.path.join(left, right)  
            
