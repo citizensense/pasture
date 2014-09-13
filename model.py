@@ -9,10 +9,11 @@ class Model:
             'info':{
                 #START
                 'fid':fid,
-                'uuid':str( uuid.uuid1() ),                
-                'timestamp':int(time.time()),
+                'apikey':str( uuid.uuid1() ),                
+                'created':int(time.time()),
+                'updated':'',
                 'csvfile':'',
-                'device': '',
+                'deviceid': '',
                 'lat':'',
                 'lon':'',
                 'title':'',
@@ -44,8 +45,8 @@ class Model:
         #    parsedoutput = obj.checkcsvfile(data)
         #    if parsedoutput is not False:
         #        break
-        # Very Dirty hack! Get the order of the data dict as it is written above
-        # FIX: Really don't need this, just refactor dict into a list/tuple
+        # Really nasty hack!!! Gets the order of the data dict as it is written above
+        # TODO: Really don't need this, just refactor dict into a list/tuple
         w1 = "#START"
         w2 = "#FIN"
         command = "sed -n '/"+w1+"/,/"+w2+"/p' model.py" # Grab the text
@@ -79,11 +80,16 @@ class Model:
         com += " | cut -d , -f 1,6,7"   # Grab the lan/lon cols
         com += " | sed 's/.*/\"&],/' "  # Format so we have a json string
         com += " | sed 's/,/\":[/1' "   # Format so we have a json string
+        com += " | sed 's/\[,\]/[]/'"     # Replace any empty strings
         com += " | sed '$s/,$//'  "     # Delete the last character from the string
         thebytes = subprocess.check_output(com, shell=True)
         thestr = '{'+thebytes.decode("utf-8").strip()+'}'
         return thestr
-        
+    
+    def view_node(self, fid):
+        jsonstr = cherrypy.config['filemanager'].grab_csvfile_asjson(fid, 'info.csv')
+        jsonstr = '{"info":'+jsonstr+'}'
+        return jsonstr
 
 #===================================================================================#
 #==============PLUGINS TO HANDLE MULTIPLE TYPES OF DATA SUBMISSION==================#
