@@ -35,8 +35,22 @@ def get_config():
         '/public': {
             'tools.staticdir.on': True,
             'tools.staticdir.dir': './public'
+        },
+        # Simple authentification used for validating speck gateway application
+        '/api/bodytrack/jupload': {
+            'tools.auth_basic.on': True,
+            'tools.auth_basic.realm': 'localhost',
+            'tools.auth_basic.checkpassword': validate_password
         }
     }
+
+# Simple password authenification
+# TODO: Implement proper authenification
+def validate_password(self, username, password):
+    return True
+    if username in USERS and USERS[username] == password:
+           return True
+    return False
 
 # Base structure
 def get_app(config=None):

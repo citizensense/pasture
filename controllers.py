@@ -53,8 +53,6 @@ class WebService(object):
             response = cherrypy.config['model'].delete_node(response, path1)
         else:    
             response['errors']['DELETE'] = 'Unrecognised command'
-        print('RESPOSN')
-        print(response)
         return json.dumps(response)
 
     # Response to a POST

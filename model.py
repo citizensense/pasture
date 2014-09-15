@@ -219,8 +219,13 @@ class SpecGatewaySubmission:
     
     # Check if submission is recognised, if it is, return structured data
     def checksubmission(self, data):
-        print('THIS AINT THE SPECK GATEWAY APPLICATION')
-        return False
+        self.data = data
+        # List of field names we are expecting
+        expected = ['dev_nickname']
+        submitted = data['submitted'].keys()
+        if cherrypy.config['model'].match_keys(expected, submitted) == False:
+            return False
+        return self.data
 
     def checkcsvfile(self, data):
         return False
