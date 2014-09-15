@@ -1,12 +1,49 @@
 #GENERAL HELPER CLASSES: FileManager, Switch 
-import cherrypy, os, threading, subprocess
+import cherrypy, os, csv, json, threading, subprocess
+from collections import OrderedDict
 
+# TODO: Needs a massive cleanup!!
+# TODO: Move filemanager to its own file
 #=======MANAGE FILES==========================================================#
 class FileManager:
 
     # initialise the object
     def __init__(self): 
         self.lock = threading.Lock() 
+    
+    # Move a directory from one location to another
+    def move_dir(self, fromdir, todir):
+        try:
+            os.rename(fromdir, todir)
+            return True
+        except:
+            return False
+
+    def grab_filepath(self, fid, filename):
+        datapath = self.grab_datapath(fid) 
+        return self.grab_joinedpath(datapath, filename)
+        
+    def grab_filecontent(self, fid, filename):
+        filepath = self.grab_filepath(fid, filename)
+        if os.path.isfile(filepath):
+            with open (filepath, "r") as myfile:
+                content=myfile.read();
+            return content
+        else:
+            return False
+    
+    # Convert csvfile to a json key:value object
+    # TODO: Convert more than just the first line, its ok for now but...
+    # TODO: Error check!!
+    def grab_csvfile_asjson(self, fid, filename):
+        filepath = self.grab_filepath(fid, filename)
+        array = list(csv.reader(open(filepath)))
+        ordered = OrderedDict()
+        for i in range(len(array[0])):
+            key = array[0][i]
+            value = array[1][i]
+            ordered[key] = value
+        return json.dumps(ordered)
 
     # Generate the filepath to the datadir when given an fid or uuid
     def grab_datapath(self, theid, whichpath='fidpath'):
@@ -24,7 +61,7 @@ class FileManager:
         elif whichpath is 'original':
             return os.path.join(fidpath, 'original')
     
-    # Grab the full path to a file uploaded the the 'original' dir in 'data/fid/original'
+    # Grab the full path to a file uploaded in the 'original' dir in 'data/fid/original'
     def grab_originalfilepath(self, theid, filename):
         originalpath = self.grab_datapath(theid, 'original')
         fullfilepath = os.path.join(originalpath, filename)  
@@ -33,7 +70,7 @@ class FileManager:
         else:
             return fullfilepath
     
-    # Grab the full filwpath when given two segments
+    # Grab the full filepath when given two segments
     def grab_joinedpath(self, left, right):
         return os.path.join(left, right)  
            
@@ -44,18 +81,22 @@ class FileManager:
     
     # Save a downloaded file in chunks
     def saveAsChunks(self, myFile, basePath):
-        filepath = os.path.join(basePath, myFile.filename)
-        out = "length: %s Name: %s Mimetype: %s"
-        size = 0
-        while True:
-            data = myFile.file.read(8192)
-            if not data:
-                break
-            with open(filepath, "ba") as mynewfile:
-                mynewfile.write(data)
-                mynewfile.close()
-            size += len(data)
-        return out % (size, myFile.filename, myFile.content_type)
+        print(basePath+myFile.filename)
+        try:
+            filepath = os.path.join(basePath, myFile.filename)
+            out = "length: %s Name: %s Mimetype: %s"
+            size = 0
+            while True:
+                data = myFile.file.read(8192)
+                if not data:
+                    break
+                with open(filepath, "ba") as mynewfile:
+                    mynewfile.write(data)
+                    mynewfile.close()
+                size += len(data)
+            return out % (size, myFile.filename, myFile.content_type)
+        except:
+            return False
     
     # Check if the file has one of a collection of filetypes 
     def fileisoneof(self, filename, allowedfiletypes):
@@ -100,13 +141,13 @@ class FileManager:
         return newdir
     
     # Grab the first line of a file
-    def grabheader(self, fullfilepath):
-        if os.path.exists(fullfilepath):  
-            thebytes = subprocess.check_output("head -n1 "+fullfilepath, shell=True)
+    def grab_fileheader(self, filepath, lines=1):
+        if os.path.exists(filepath):  
+            thebytes = subprocess.check_output("head -n"+lines+" "+filepath, shell=True)
             # Output is returned as bytes so we need to convert it to a string
             return thebytes.decode("utf-8").strip()
         else:
-            return 'no file found at: '+fullfilepath
+            return ''
 
 # Nice switch statement object
 class Switch(object):

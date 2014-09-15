@@ -1,2 +1,2 @@
-#fid,uuid,timestamp,csvfile,device,lat,lon,title,tags,submissiondata
-000000003,c8314d4e-1975-11e4-82b4-7c7a91472dae,1406895438,smallspecdsample.csv,,51.48683,-0.06248,,,{"myFile": "smallspecdsample.csv"&#44 "gps": "51.48683&#44-0.06248"}
+#fid,apikey,created,updated,title,csvfile,deviceid,datatype,lat,lon
+000000003,b95e9942-3b9f-11e4-9879-7c7a91472dae,1410651792,1410651792,,,,speck,51.48844,-0.08549
