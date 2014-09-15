@@ -1,2 +1,2 @@
-#fid,uuid,timestamp,csvfile,device,lat,lon,title,tags,submissiondata
-000000004,046964ce-3ab7-11e4-a785-7c7a91472dae,1410551845,,,,,,,{"data": "1&#442&#443&#444&#445&#446&#447&#448&#449&#440"&#44 "deviceid": "abc"&#44 "key": "bd34c6e6-1975-11e4-82b4-7c7a91472dae"}
+#fid,apikey,created,updated,title,csvfile,deviceid,datatype,lat,lon
+000000004,612d6f2c-3ba0-11e4-991f-7c7a91472dae,1410652073,1410652073,,,6794560212,frackbox,51.47176,-0.06403

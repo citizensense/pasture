@@ -3,12 +3,21 @@ import cherrypy, os, csv, json, threading, subprocess
 from collections import OrderedDict
 
 # TODO: Needs a massive cleanup!!
+# TODO: Move filemanager to its own file
 #=======MANAGE FILES==========================================================#
 class FileManager:
 
     # initialise the object
     def __init__(self): 
         self.lock = threading.Lock() 
+    
+    # Move a directory from one location to another
+    def move_dir(self, fromdir, todir):
+        try:
+            os.rename(fromdir, todir)
+            return True
+        except:
+            return False
 
     def grab_filepath(self, fid, filename):
         datapath = self.grab_datapath(fid) 
@@ -72,18 +81,22 @@ class FileManager:
     
     # Save a downloaded file in chunks
     def saveAsChunks(self, myFile, basePath):
-        filepath = os.path.join(basePath, myFile.filename)
-        out = "length: %s Name: %s Mimetype: %s"
-        size = 0
-        while True:
-            data = myFile.file.read(8192)
-            if not data:
-                break
-            with open(filepath, "ba") as mynewfile:
-                mynewfile.write(data)
-                mynewfile.close()
-            size += len(data)
-        return out % (size, myFile.filename, myFile.content_type)
+        print(basePath+myFile.filename)
+        try:
+            filepath = os.path.join(basePath, myFile.filename)
+            out = "length: %s Name: %s Mimetype: %s"
+            size = 0
+            while True:
+                data = myFile.file.read(8192)
+                if not data:
+                    break
+                with open(filepath, "ba") as mynewfile:
+                    mynewfile.write(data)
+                    mynewfile.close()
+                size += len(data)
+            return out % (size, myFile.filename, myFile.content_type)
+        except:
+            return False
     
     # Check if the file has one of a collection of filetypes 
     def fileisoneof(self, filename, allowedfiletypes):
@@ -128,13 +141,13 @@ class FileManager:
         return newdir
     
     # Grab the first line of a file
-    def grabheader(self, fullfilepath):
-        if os.path.exists(fullfilepath):  
-            thebytes = subprocess.check_output("head -n1 "+fullfilepath, shell=True)
+    def grab_fileheader(self, filepath, lines=1):
+        if os.path.exists(filepath):  
+            thebytes = subprocess.check_output("head -n"+lines+" "+filepath, shell=True)
             # Output is returned as bytes so we need to convert it to a string
             return thebytes.decode("utf-8").strip()
         else:
-            return 'no file found at: '+fullfilepath
+            return ''
 
 # Nice switch statement object
 class Switch(object):

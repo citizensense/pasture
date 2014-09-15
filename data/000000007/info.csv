@@ -1,2 +1,2 @@
-#fid,apikey,created,updated,csvfile,deviceid,lat,lon,title,tags
-000000007,2c77744a-3b3b-11e4-97c9-7c7a91472dae,1410608606,,,,,,,
+#fid,apikey,created,updated,title,csvfile,deviceid,datatype,lat,lon
+000000007,570a158e-3ba2-11e4-b8f9-7c7a91472dae,1410652915,1410652915,,,,frackbox,51.49731,-0.11381

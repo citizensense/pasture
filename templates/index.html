@@ -62,29 +62,29 @@
 <div id="map"></div>
 <div id="charts"></div>
 
-<div id="uploadform" class="centeredform">
-    <form id="uploadformform" class="pure-form pure-form-stacked" action="/api" method="post" enctype="multipart/form-data">
+<div id="uploadform">
+    <form id="newmarker" class="pure-form pure-form-stacked" action="/api" method="post" enctype="multipart/form-data">
         <h2>Create new marker:</h2>
         <fieldset>
             <label for="upload-title">Select type</label>
-            <select id="selecttype">
+            <select id="datatype" name="datatype">
                 <option value="frackbox">FRACKBOX [defaultgps]</option>
                 <option value="speck"><span>SPECK [defaultgps]</option>
                 <!--<option value="observation">Observation at this location</option>-->
             </select>
-            <input id="upload-gps" class="fullwidth" type="hidden" name="gps" value="defaultgps" /> 
+            <input id="gps" class="fullwidth" type="hidden" name="gps" value="defaultgps" /> 
             
-            <label for="upload-title">Title</label>
-            <input id="upload-title" class="fullwidth" type="text" name="title" value="" />  
+            <label for="title">Title</label>
+            <input id="title" class="fullwidth" type="text" name="title" value="" />  
             
-            <label for="upload-speckid">Device ID</label>
-            <input id="upload-deviceid" class="fullwidth" type="text" name="speck-id" value="" />  
+            <label for="deviceid">Device ID</label>
+            <input id="deviceid" class="fullwidth" type="text" name="deviceid" value="" />  
             
-            <label for="upload-uid">API key (If known)</label>
-            <input id="upload-uid" class="fullwidth" type="text" name="title" value="" />  
+            <label for="apikey">API key (If known)</label>
+            <input id="apikey" class="fullwidth" type="text" name="apikey" value="" />  
             
             <label for="file">Upload file (if required)</label>
-            <input id="file" type="file" name="myFile" />
+            <input id="file" type="file" name="file" />
             <button id="upload-save" class="pure-button pure-button-primary">Save</button>
         </fieldset>
     </form>
@@ -169,7 +169,6 @@ jQuery(document).ready(function(){
         setmenu('#debug');
         generatemap();
         loadnodes();
-        submitmyform('#uploadformform');
         // Create the graphs
         //var mygraph = new Graphkit("chart1", 100);  // id, height, data
         //mygraph.testdata();
@@ -222,26 +221,40 @@ jQuery(document).ready(function(){
     function displaynodes(data){
         var msg = '';
         $.each(data, function( index, val ) {
-            if(0 in val && 1 in val){
+            if(0 in val && 1 in val && 2 in val){
                 msg += index+', ';
-                var latlng = [val[0], val[1]];
-                var marker = new frackMarker(latlng,{
-                    icon:frackBox,
-                    clickable: true,
-                    data: index
-                }).on('click', onClick).addTo(map);
+                var latlng = [val[1], val[2]];
+                displaynode(index, latlng, '', val[0]);
             }else{
                 msg += 'No lat/lng for'+index+', ';
             }
-            function onClick(e) {
-                fid = this.options.data;
-                loadnode(fid);
-                setmenu('#nodedata')
-            } 
         });
         debug(msg);
     }
     
+    // DISPLAY NODE ON THE MAP
+    function displaynode(id, latlng, title, datatype){
+        debug('Display: '+datatype);
+        if(datatype=='frackbox'){
+            nodes[id] = new frackMarker(latlng,{
+                icon:frackBox,
+                clickable: true,
+                data: id
+            }).on('click', onClick).addTo(map);
+        }else{
+            nodes[id] = new frackMarker(latlng,{
+                icon:speckBox,
+                clickable: true,
+                data: id
+            }).on('click', onClick).addTo(map);
+        }
+        function onClick(e) {
+            fid = this.options.data;
+            loadnode(fid);
+            setmenu('#nodedata');
+        } 
+    }
+
     // LOAD SINGLE NODE DATA
     // TODO: Create a local cache so we don't keep reloading the same nodes
     function loadnode(fid){
@@ -285,6 +298,7 @@ jQuery(document).ready(function(){
             processData: false,
             success: function (data) {
                 debug(data['msg'])
+                map.removeLayer(nodes[fid]);
             },
             error: function(e){
                 debug('Unable to delete node');
@@ -294,7 +308,7 @@ jQuery(document).ready(function(){
 
 
     // SUBMIT UPLOAD FORM
-    function submitmyform(formid){
+    function ajaxsubmission(formid){
         $(formid).submit(function(event){
             //disable the default form submission
             event.preventDefault();
@@ -304,12 +318,22 @@ jQuery(document).ready(function(){
                 url: '/api/create',
                 type: 'POST',
                 data: formData,
+                dataType: 'json',
                 async: false,
                 cache: false,
                 contentType: false,
                 processData: false,
                 success: function (data) {
-                    $("#messagebox").prepend('<div class="msg">'+data+'</div>');  
+                    // Add new marker to map and remove the form
+                    debug(data);
+                    map.removeLayer(mapclickpopup);
+                    var fid = data['info']['fid'];
+                    var latlng = [data['info']['lat'], data['info']['lon'] ]; 
+                    var datatype = data['info']['datatype'];
+                    displaynode(fid, latlng, '', datatype);
+                },
+                error: function(){
+                    debug('JSON Error: Failed to create new marker')
                 }
             });
             return false;
@@ -332,10 +356,20 @@ jQuery(document).ready(function(){
             shadowUrl: 'public/images/shadow.png',
             iconSize:     [23, 23], // size of the icon
             shadowSize:   [50, 50], // size of the shadow
-            iconAnchor:   [-8, -8], // point of the icon which will correspond to marker's location
-            shadowAnchor: [0, 0],  // the same for the shadow
+            iconAnchor:   [10, 10], // point of the icon which will correspond to marker's location
+            shadowAnchor: [18, 18],  // the same for the shadow
             popupAnchor:  [20, 0] // point from which the popup should open relative to the iconAnchor
         });
+        speckBox = L.icon({
+            iconUrl: '/public/images/27.gif',
+            shadowUrl: 'public/images/shadow.png',
+            iconSize:     [23, 23], // size of the icon
+            shadowSize:   [50, 50], // size of the shadow
+            iconAnchor:   [10, 10], // point of the icon which will correspond to marker's location
+            shadowAnchor: [18, 18],  // the same for the shadow
+            popupAnchor:  [20, 0] // point from which the popup should open relative to the iconAnchor
+        });
+
         frackMarker = L.Marker.extend({
             options: {
                 data: 'data'
@@ -349,11 +383,12 @@ jQuery(document).ready(function(){
         return thispopup.setLatLng(latlng).setContent(content).addTo(map);
     } 
     /* 	Generate an upload form */   
-    function onMapClick(e) { 
+    function onMapClick(e) {
         var latlng = e.latlng.toString().replace('LatLng(', '').replace(')', '').replace(' ', '');
         var html = jQuery('#uploadform').html();
         html = html.replace(/defaultgps/g , latlng);
-        return addpopup(e.latlng, html);     
+        mapclickpopup = addpopup(e.latlng, html);  
+        ajaxsubmission('#newmarker');
     }  
        
     // BUILD THE PAGE
