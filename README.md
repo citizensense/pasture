@@ -1,5 +1,5 @@
 ## Pasture 
-IN ACTIVE DEVELOPMENT - NOT YET WORKING 
+IN ACTIVE DEVELOPMENT - NOT YET WORKING !
 
 ### What is Pasture? 
 A platform to display data produced as a result of sensor gathering practices. 
