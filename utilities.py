@@ -11,14 +11,22 @@ class FileManager:
     def __init__(self): 
         self.lock = threading.Lock() 
     
-    # Move a directory from one location to another
+    # Move a directory from one location to another, if a directory exists, then alter then name
     def move_dir(self, fromdir, todir):
-        try:
-            os.rename(fromdir, todir)
-            return True
-        except:
-            return False
-
+        n = 1
+        sp = ''
+        trying = True
+        while trying:
+            try:
+                os.rename(fromdir, todir+sp)
+                trying = False
+            except:
+                print('FAILED TO MOVE!!')
+            n = n+1
+            sp = '-'+str(n)
+            if n>=1000: trying = False
+        return True
+        
     def grab_filepath(self, fid, filename):
         datapath = self.grab_datapath(fid) 
         return self.grab_joinedpath(datapath, filename)
