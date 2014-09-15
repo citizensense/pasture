@@ -16,6 +16,7 @@ def get_config():
         'server.socket_port': 8787,
         'server.max_request_body_size':416000000,
         'datadir': 'data',
+        'dustbin': 'dustbin',
         'taskmanager': TaskManager(),
         'model': Model(),
         'filemanager': FileManager()

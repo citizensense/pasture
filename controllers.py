@@ -33,7 +33,7 @@ class WebService(object):
         if pathlen >= 3:
             path2 = vpath[2]    
         # Return List of all nodes: /api/view 
-        if path0=='viewall' and path1=='':
+        if path0=='viewall':
             return cherrypy.config['model'].view_all()
         # View a single node
         elif path0=='view' and len(path1)>0:
@@ -47,55 +47,31 @@ class WebService(object):
         pathlen = len(vpath)
         if pathlen >= 1:path0 = vpath[0] 
         if pathlen >= 2:path1 = vpath[1]
-        # Move a folder to the 'deleted directory'
+        # Move a folder to the 'dustbin' directory
         if path0 == 'deletenode':
-            print('DELETE NODE: '+path1)
-            msg = 'Node has been put in the rubbish bin'
+            if cherrypy.config['filemanager'].move_dir('data/'+path1, 'dustbin/'+path1):
+                msg = 'Moved to the rubbish bin'
+            else:
+                msg = "Failed to move to rubbish bin"
         else:
             msg = 'Error: Unrecognised command'
         return '{"msg":"'+msg+'"}'
 
     # Response to a POST
     def POST(self, *args, **kwargs):
-        # Prep vars for saving data
-        datadir = os.path.join(os.path.dirname(__file__), cherrypy.config['datadir'])
-        # Generate a unique folder/ID for the data using a lock so as to avoid a race condition
-        fid = cherrypy.config['filemanager'].createUniqueDirAt(datadir)
-        # The new folder has been created so lets construct our paths to write to
-        fidpath = os.path.join(datadir, fid)
-        fidfilespath = cherrypy.config['filemanager'].createDirAt(os.path.join(fidpath, 'original')) 
-        data=cherrypy.config['model'].submission_structure(fid)
-
-        # Lets see what's been posted & attempt to save any files
+        # Initialise our data structure
+        data=cherrypy.config['model'].submission_structure()
+        # Lets see what's been posted & validate the submission
         for key in kwargs:
             # Check if we need to save a file
-            print(kwargs[key])
-            print( type(kwargs[key] )) 
             if type(kwargs[key]) is cherrypy._cpreqbody.Part:
-                # Check we are allowed to save files with this suffix
-                # TODO: Check mimetype in addition to filename
-                validmsg = self.VALID(kwargs[key].filename, 'filenamestring')
-                if validmsg is True:
-                    resp = cherrypy.config['filemanager'].saveAsChunks(kwargs[key], fidfilespath)
-                    data['submitted'][key] = kwargs[key].filename   
-                else :
-                    data['submitted'][key] = ''
-                    data['errors'][key] = validmsg 
+                data['filestosave'].append(kwargs[key])
+                data['submitted'][key] = kwargs[key].filename 
             # Nope its a list or string
             else:
                 data['submitted'][key] = kwargs[key]
-        # Create a new node OR if there are errors delete the directory
-        if len(data['errors']) < 1 : 
-            # Add "create_node" job to the task manager     
-            #cherrypy.config['taskmanager'].add( {'type':'parse_submission', 'data': data} ) 
-            data = cherrypy.config['model'].parse_submission(data)  
-            # data['success']['code'] = '200 OK'
-            # data['success']['msg'] = 'A new node is being analysed and submitted' 
-        else :
-            # Delete the data directory
-            # TODO: Turn this into a task using filemanager
-            shutil.rmtree(fidpath)
-        
+        # Parse the submission and save the data if its valid
+        data = cherrypy.config['model'].parse_submission(data)
         # Issue a JSON response to the POST
         return json.dumps(data)
     
