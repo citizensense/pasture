@@ -1,0 +1,116 @@
+/* BASE SETUP */
+body {
+    background-color: blue;
+	margin:0px;
+	padding:0px;
+	background:#ccc;
+	font-family: Arial, sans-serif;
+}
+a,a:link{
+	color:#ccc;
+	text-decoration:none;
+}
+a:visited{
+	color:#ccc;
+}
+a:hover{
+	color:#888;
+}
+
+/* GENERAL HELPER CLASSES */
+.inner{
+    margin:5px;
+}
+.shadow {	
+    -webkit-box-shadow: 0px 9px 7px 0px rgba(50, 50, 50, 0.59);
+	-moz-box-shadow:    0px 9px 7px 0px rgba(50, 50, 50, 0.59);
+	box-shadow:         0px 9px 7px 0px rgba(50, 50, 50, 0.59);
+}
+.fullwidth{
+    width:100%;
+}
+/* HEADER */
+#header{
+	position:absolute;
+    top:0px;
+    left:0.5em;
+    width:400px;
+    height:3em;
+    z-index:1000;
+}
+#header h1{
+    margin:0px;
+    padding:0px;
+    padding-top:4px;
+}
+#header #maintitle a,
+#header #maintitle a:link{
+    color:#444;
+    font-size:1em;
+    text-decoration:none;
+}
+#mainmenu{
+    display:none;
+}
+
+/* MAIN INFORMATION BLOCK */
+#information{
+    position:absolute;
+    top:3em;
+    left:0.5em;
+    width:400px;
+    height:500px;
+    background:#fff;
+    z-index:1000;
+}
+#information .tab{
+    position:absolute;
+    top:1.5em;
+}
+#information h2{
+    font-size:1.2em;
+    color:#ccc;
+}
+#information h2:hover{
+    color:#222;
+}
+#information .tab h2{width:100px;margin-top:-1em;}
+#information .t2 h2{margin-left:100px;}
+#information .t3 h2{margin-left:200px;}
+#information .t4 h2{margin-left:300px;}
+
+/* MAP */
+#map{
+   	position:fixed;
+	top:0px;
+	right:0px;
+	bottom:0px;
+	left:0px;
+	z-index:0;
+}
+div.leaflet-top,
+div.leaflet-left{
+	top:1em;
+    left:95%;
+}
+/* UPLOAD FORM */
+#selecttype{
+    width:100%;
+}
+.selecttypeb{
+    font-weight:bold;
+}
+#upload-gps{
+    width:200px;
+    border:0px;
+    box-shadow:none;
+}
+label{
+    font-weight:bolder;
+}
+#upload-save{
+    float:right;
+    clear:both;
+}
+
+

@@ -13,41 +13,79 @@
 	<link type="text/css" rel="stylesheet" href="/public/css/graph.css">
 	<link type="text/css" rel="stylesheet" href="/public/css/detail.css">
 	<link type="text/css" rel="stylesheet" href="/public/css/legend.css">
-	<link type="text/css" rel="stylesheet" href="/public/css/extensions.css">
+	<!-- <link type="text/css" rel="stylesheet" href="/public/css/extensions.css"> <!--->
  	
  	<!-- MAP -->
 	<link rel="stylesheet" href="/public/css/leaflet.css" />
+
+    <!-- GENERAL -->
+    <link rel="stylesheet" href="/public/css/ant.css" />
 
 </head>
 
 <body>
 
-<div id="header" class="shadow">
+<div id="header">
+	<h1 id="maintitle"><a href="#" class="pure-menu-heading">Frackbox</a></h1>
 	<div id="mainmenu" class="pure-menu pure-menu-open pure-menu-horizontal">
-	    <a id="maintitle" href="#" class="pure-menu-heading">CS PLatform</a>
-	    <ul>
+	   	<ul>
 	        <li><a id="uploadbutton" href="#">Upload</a></li> 
 	        <li><a id="loginbutton" href="#">Sign In</a></li>
 	    </ul>
 	</div>
 </div>
 
-<div id="map"></div>
-<div id="charts"> </div>
-
-<div id="uploadform" class="centeredform">
-    <form id="uploadformform" class="pure-form pure-form-stacked" action="/api" method="post" enctype="multipart/form-data">
-        <fieldset>
-            <legend>File Upload <a href="#">x</a></legend>
-            <div class="pad">
-                <label for="upload-gps">GPS (Click Map)</label>
-                <input id="upload-gps" class="fullwidth" type="text" name="gps" value="">  
-                
-                <label for="file">Select file to upload</label>
-                <input id="file" type="file" name="myFile" />
-
-                <button id="upload" class="pure-button pure-button-primary">Upload</button>
+<div id="information" class="shadow">
+    <div class="inner">
+        <div id="nodelist" class="tab t1">
+            <h2>Nodes</h2>
+            <div class="content">Node list</div>
+        </div>
+        <div id="nodedata" class="tab t2">
+            <h2>Data</h2>
+            <div class="content"></div>
+        </div>
+        <div id="help" class="tab t3">
+            <h2>Help</h2>
+            <div class="content">
+            help text
             </div>
+        </div>
+        <div id="debug" class="tab t4">
+            <h2>Debug</h2>
+            <div class="content">
+            </div>
+        </div>
+            </div>
+</div>
+
+<div id="map"></div>
+<div id="charts"></div>
+
+<div id="uploadform">
+    <form id="newmarker" class="pure-form pure-form-stacked" action="/api" method="post" enctype="multipart/form-data">
+        <h2>Create new marker:</h2>
+        <fieldset>
+            <label for="upload-title">Select type</label>
+            <select id="datatype" name="datatype">
+                <option value="frackbox">FRACKBOX [defaultgps]</option>
+                <option value="speck"><span>SPECK [defaultgps]</option>
+                <!--<option value="observation">Observation at this location</option>-->
+            </select>
+            <input id="gps" class="fullwidth" type="hidden" name="gps" value="defaultgps" /> 
+            
+            <label for="title">Title</label>
+            <input id="title" class="fullwidth" type="text" name="title" value="" />  
+            
+            <label for="deviceid">Device ID</label>
+            <input id="deviceid" class="fullwidth" type="text" name="deviceid" value="" />  
+            
+            <label for="apikey">API key (If known)</label>
+            <input id="apikey" class="fullwidth" type="text" name="apikey" value="" />  
+            
+            <label for="file">Upload file (if required)</label>
+            <input id="file" type="file" name="file" />
+            <button id="upload-save" class="pure-button pure-button-primary">Save</button>
         </fieldset>
     </form>
 </div>
@@ -79,16 +117,6 @@
         </fieldset>
     </form>
 
-</div>
-
-<div id="messages">
-    <h4>Messages</h4>
-    <div id="messagebox">
-    </div>
-</div>
-
-<div id="Data">
-    <h4>Nodes</h4>
 </div>
 
 <script src="/public/js/d3.v3.js"></script>
@@ -129,48 +157,158 @@
 <script>
 // MENU FUNCTIONS
 jQuery(document).ready(function(){
-    var $ = jQuery;
     
-    // MAIN MENU CONTROLS
-    // Show/Hide upload form
-    $("#uploadbutton").click(function(){
-         $('#loginform').hide(); 
-         $("#uploadform").toggle();
-    });
-    $('#uploadbutton').toggle(function () {
-        $('#uploadform').hide();
-    }, function () {
-        $('#uploadform').show();
-    });
+    // INITIALISE & BUILD THE PAGE
+    function init(){ 
+        // Some global vars
+        $ = jQuery;
+        debugcount = 0;
+        nodes = [];
+        // Build the page
+        initmenu();
+        setmenu('#debug');
+        generatemap();
+        loadnodes();
+        // Create the graphs
+        //var mygraph = new Graphkit("chart1", 100);  // id, height, data
+        //mygraph.testdata();
+    }
 
-    // Show / Hide login form
-    $("#loginbutton").click(function(){
-        $('#uploadform').hide();   
-        $("#logininform").toggle();
-    });
-    $('#loginform').toggle(function () {
-        $('#loginform').hide();
-    }, function () {
-        $('#loginform').show();
-    });
+    // MAIN MENU CONTROLS
+    function initmenu(){
+        // Show/Hide tabs
+        $(".tab h2").click(function(){
+            var id = $(this).parent().attr("id");
+            setmenu('#'+id);
+        }).hover(function() {
+            $(this).css('cursor','pointer');
+        });
+    }
+    function setmenu(id){
+        $('.tab .content').hide(); 
+        $(id+' .content').show();
+        $('.tab h2').css('color','#ccc'); 
+        $(id+' h2').css('color','#222'); 
+    }
     
+    // UI debug output
+    function debug(msg){
+        $("#debug .content").prepend(debugcount+': '+msg+'<br />'); 
+        debugcount ++;
+    }
+
     // LOAD NODES
     function loadnodes(){
         $.ajax({
-            url: '/api/view/all',
+            url: '/api/viewall',
             type: 'GET',
+            dataType: 'json',
             async: false,
             cache: false,
             contentType: false,
             processData: false,
             success: function (data) {
-                $("#messagebox").prepend('<div class="msg">'+data+'</div>');  
+                debug('Got \'/api/viewall\' json')
+                displaynodes(data);
+            },
+            error: function(e){
+                debug('Failed to load \'/api/viewall\' json'); 
+            }
+        });
+    }
+    
+    // DISPLAY LIST OF NODES ON THE MAP
+    function displaynodes(data){
+        var msg = '';
+        $.each(data, function( index, val ) {
+            if(0 in val && 1 in val && 2 in val){
+                msg += index+', ';
+                var latlng = [val[1], val[2]];
+                displaynode(index, latlng, '', val[0]);
+            }else{
+                msg += 'No lat/lng for'+index+', ';
+            }
+        });
+        debug(msg);
+    }
+    
+    // DISPLAY NODE ON THE MAP
+    function displaynode(id, latlng, title, datatype){
+        debug('Display: '+datatype);
+        if(datatype=='frackbox'){
+            nodes[id] = new frackMarker(latlng,{
+                icon:frackBox,
+                clickable: true,
+                data: id
+            }).on('click', onClick).addTo(map);
+        }else{
+            nodes[id] = new frackMarker(latlng,{
+                icon:speckBox,
+                clickable: true,
+                data: id
+            }).on('click', onClick).addTo(map);
+        }
+        function onClick(e) {
+            fid = this.options.data;
+            loadnode(fid);
+            setmenu('#nodedata');
+        } 
+    }
+
+    // LOAD SINGLE NODE DATA
+    // TODO: Create a local cache so we don't keep reloading the same nodes
+    function loadnode(fid){
+        $('#nodedata .content').html('Loading: '+fid);
+        $.ajax({
+            url: '/api/view/'+fid,
+            type: 'GET',
+            async: false,
+            cache: false,
+            contentType: false,
+            processData: false,
+            success: function (str) {
+                var data = JSON.parse(str);
+                var content = ''
+                $('#nodedata .content').html('Loaded: '+fid);
+                $.each(data['info'], function( index, value ) {
+                    content += '<li><b>'+index+'</b>:'+value+'</li>';
+                });
+                content += '<hr /><a href="/api/edit/'+fid+'" class="pure-button pure-button-primary">edit</a>'
+                content += '<a id=\'node'+fid+'\' href="#" class="pure-button pure-button-primary">delete</a>'
+                content += '<div id="nodemsg"></div>';
+                $('#nodedata .content').html(content);
+                $("#node"+fid).click(function(){
+                    delete_node(fid);
+                }).hover(function() {
+                    $(this).css('cursor','pointer');
+                });
             }
         });
     }
 
+    // DELETE NODE
+    function delete_node(fid){
+        $.ajax({
+            url: '/api/deletenode/'+fid,
+            type: 'DELETE',
+            dataType: 'json',
+            async: false,
+            cache: false,
+            contentType: false,
+            processData: false,
+            success: function (data) {
+                debug(data['msg'])
+                map.removeLayer(nodes[fid]);
+            },
+            error: function(e){
+                debug('Unable to delete node');
+            }
+        });
+    }
+
+
     // SUBMIT UPLOAD FORM
-    function submitmyform(formid){
+    function ajaxsubmission(formid){
         $(formid).submit(function(event){
             //disable the default form submission
             event.preventDefault();
@@ -180,64 +318,83 @@ jQuery(document).ready(function(){
                 url: '/api/create',
                 type: 'POST',
                 data: formData,
+                dataType: 'json',
                 async: false,
                 cache: false,
                 contentType: false,
                 processData: false,
                 success: function (data) {
-                    $("#messagebox").prepend('<div class="msg">'+data+'</div>');  
+                    // Add new marker to map and remove the form
+                    debug(data);
+                    map.removeLayer(mapclickpopup);
+                    var fid = data['info']['fid'];
+                    var latlng = [data['info']['lat'], data['info']['lon'] ]; 
+                    var datatype = data['info']['datatype'];
+                    displaynode(fid, latlng, '', datatype);
+                },
+                error: function(){
+                    debug('JSON Error: Failed to create new marker')
                 }
             });
             return false;
         });
     }
     
-    // GENERATE THE PAGE
-    loadnodes();
-    submitmyform('#uploadformform');
+    // GENERATE THE MAP & MAP CONTROLS
+    function generatemap(){ 
+        // Setup the base map
+        map = L.map('map').setView([51.505, -0.09], 13);
+        var tilelayer = "http://{s}.tiles.mapbox.com/v3/openplans.map-g4j0dszr/{z}/{x}/{y}.png";
+        //var tilelayer = "http://{s}.tile.stamen.com/watercolor/{z}/{x}/{y}.jpg"; //L.control.scale().addTo(map);
+        L.tileLayer(tilelayer, {
+            attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://mapbox.com">Mapbox</a>',
+            maxZoom: 18
+        }).addTo(map);
+        // Define an icon. Images sourced from: http://preloaders.net
+        frackBox = L.icon({
+            iconUrl: '/public/images/29.gif',
+            shadowUrl: 'public/images/shadow.png',
+            iconSize:     [23, 23], // size of the icon
+            shadowSize:   [50, 50], // size of the shadow
+            iconAnchor:   [10, 10], // point of the icon which will correspond to marker's location
+            shadowAnchor: [18, 18],  // the same for the shadow
+            popupAnchor:  [20, 0] // point from which the popup should open relative to the iconAnchor
+        });
+        speckBox = L.icon({
+            iconUrl: '/public/images/27.gif',
+            shadowUrl: 'public/images/shadow.png',
+            iconSize:     [23, 23], // size of the icon
+            shadowSize:   [50, 50], // size of the shadow
+            iconAnchor:   [10, 10], // point of the icon which will correspond to marker's location
+            shadowAnchor: [18, 18],  // the same for the shadow
+            popupAnchor:  [20, 0] // point from which the popup should open relative to the iconAnchor
+        });
 
+        frackMarker = L.Marker.extend({
+            options: {
+                data: 'data'
+            }
+        });
+        map.on('click', onMapClick);
+    }
+    /*  Add a popup. Example usage: addpopup([51.54193, 0.71995], "A message <strong>to</strong> display."); */
+    function addpopup(latlng, content) { 
+        thispopup = L.popup();   
+        return thispopup.setLatLng(latlng).setContent(content).addTo(map);
+    } 
+    /* 	Generate an upload form */   
+    function onMapClick(e) {
+        var latlng = e.latlng.toString().replace('LatLng(', '').replace(')', '').replace(' ', '');
+        var html = jQuery('#uploadform').html();
+        html = html.replace(/defaultgps/g , latlng);
+        mapclickpopup = addpopup(e.latlng, html);  
+        ajaxsubmission('#newmarker');
+    }  
+       
+    // BUILD THE PAGE
+    init();
+    
 });
-
-// MAP HELPER FUNCTIONS
-/*  Add a dot to the current map. Example usage: 
-	addmarker([51.54193, 0.71995], 5, {color: 'red',fillColor: '#f03',fillOpacity: 0.5} );       */
-function addmarker(latlng, size, style){
-	return L.circle(latlng, size, style).addTo(map); 
-}
-/*  Add a popup. Example usage: 
-	addpopup([51.54193, 0.71995], "A message <strong>to</strong> display."); */
-function addpopup(latlng, content) { 
-	thispopup = L.popup();   
-	return thispopup.setLatLng(latlng).setContent(content).addTo(map);
-} 
-/* 	Perform a function when the map is clicked: Example usage: 
-    map.on('click', onMapClick);   */   
-function onMapClick(e) { 
-    var str = e.latlng.toString().replace('LatLng(', '').replace(')', '').replace(' ', '');
-    jQuery('#upload-gps').val(str);
-	return addpopup(e.latlng, "You clicked the map at:<br />" + e.latlng.toString())     
-}  
-
-// CREATE THE MAP
-// Setup the base map
-var map = L.map('map').setView([51.505, -0.09], 13);
-var tilelayer = "http://{s}.tiles.mapbox.com/v3/openplans.map-g4j0dszr/{z}/{x}/{y}.png";
-//var tilelayer = "http://{s}.tile.stamen.com/watercolor/{z}/{x}/{y}.jpg"; //L.control.scale().addTo(map);
-L.tileLayer(tilelayer, {
-    attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://mapbox.com">Mapbox</a>',
-    maxZoom: 18
-}).addTo(map);
-// Style
-var style = {color: 'green',fillColor: 'green',fillOpacity: 0.5}
-var size = 50; 
-// Add markers
-addmarker([51.47502,-0.03605], size, style);
-map.on('click', onMapClick); 
-
-
-// Create the graphs
-//var mygraph = new Graphkit("chart1", 100);  // id, height, data
-//mygraph.testdata();
 
 </script>
 
