@@ -3,6 +3,7 @@ __pycache__
 *.py[cod]
 dustbin/*
 config.py
+data/*
 
 # C extensions
 *.so
