@@ -48,14 +48,14 @@ class WebService(object):
         if pathlen >= 1:path0 = vpath[0] 
         if pathlen >= 2:path1 = vpath[1]
         # Move a folder to the 'dustbin' directory
+        response = {"success":{},"errors":{}}
         if path0 == 'deletenode':
-            if cherrypy.config['filemanager'].move_dir('data/'+path1, 'dustbin/'+path1):
-                msg = 'Moved to the rubbish bin'
-            else:
-                msg = "Failed to move to rubbish bin"
-        else:
-            msg = 'Error: Unrecognised command'
-        return '{"msg":"'+msg+'"}'
+            response = cherrypy.config['model'].delete_node(response, path1)
+        else:    
+            response['errors']['DELETE'] = 'Unrecognised command'
+        print('RESPOSN')
+        print(response)
+        return json.dumps(response)
 
     # Response to a POST
     def POST(self, *args, **kwargs):

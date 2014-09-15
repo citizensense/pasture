@@ -51,7 +51,8 @@ class Model:
             data.pop('filestosave', None)
             data.pop('info', None)
             data.pop("success", None)
-            data['errors']['POST'] = 'Format not recognised' 
+            data['errors']['form'] = 'Post structure not recognised' 
+        print(data)
         return data
     
     # CREATE A NEW NODE
@@ -112,6 +113,14 @@ class Model:
         jsonstr = '{"info":'+jsonstr+'}'
         return jsonstr
     
+    def delete_node(self, response, fid):
+        print('DELETE: '+str(fid)+'\n')
+        if cherrypy.config['filemanager'].move_dir('data/'+fid, 'dustbin/'+fid):
+            response['success']['completed'] = 'Moved to the rubbish bin'
+        else:
+            response['errors']['failed'] = "Failed to move to rubbish bin"
+        return response
+
     # MODEL UTILITIES
     #  Compare two lists and see if their contents match
     def match_keys(self, expected, provided):
@@ -137,7 +146,7 @@ class UploadformSubmission:
     def checksubmission(self, data):
         self.data = data
         # List of field names we are expecting
-        expected = ['title', 'deviceid', 'gps', 'apikey', 'file', 'datatype']
+        expected = ['gpstype','title', 'deviceid', 'gps', 'apikey', 'file', 'datatype', 'username', 'password']
         submitted = data['submitted'].keys()
         if cherrypy.config['model'].match_keys(expected, submitted) == False:
             return False
@@ -172,6 +181,15 @@ class UploadformSubmission:
         except:
             return
     
+    def format_gpstype(self):
+        return
+
+    def format_username(self):
+        return
+
+    def format_password(self):
+        return
+
     def format_file(self):
         # Check we have a file in the correct format
         filename = self.data['submitted']['file']
@@ -184,6 +202,7 @@ class UploadformSubmission:
         # TODO: Add save chunks here....
     
     def format_title(self):
+        # TODO: Escape commas from the title
         self.data['info']['title'] = self.data['submitted']['title']       
     
     def format_deviceid(self):

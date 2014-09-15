@@ -63,30 +63,63 @@
 <div id="charts"></div>
 
 <div id="uploadform">
-    <form id="newmarker" class="pure-form pure-form-stacked" action="/api" method="post" enctype="multipart/form-data">
-        <h2>Create new marker:</h2>
+    <form id="newmarker" class="pure-form  pure-form-aligned" action="/api" method="post" enctype="multipart/form-data">
+        <h2>Create new marker at:</h2>
         <fieldset>
-            <label for="upload-title">Select type</label>
-            <select id="datatype" name="datatype">
-                <option value="frackbox">FRACKBOX [defaultgps]</option>
-                <option value="speck"><span>SPECK [defaultgps]</option>
-                <!--<option value="observation">Observation at this location</option>-->
-            </select>
+        
+            <label for="option-two" class="pure-radio">
+                <input type="radio" name="gpstype" value="option1" checked>
+                Exact GPS: defaultgps
+            </label>
+            <label for="option-three" class="pure-radio">
+                <input type="radio" name="gpstype" value="option2">
+                General location (Click map)
+            </label>
+
+            <div class="pure-control-group">
+                <label for="upload-title">Type</label>
+                <select id="datatype" name="datatype">
+                    <option value="speck"><span>SPECK</option>
+                    <option value="frackbox">FRACKBOX</option>
+                    <!--<option value="observation">Observation at this location</option>-->
+                </select>
+            </div>
+
             <input id="gps" class="fullwidth" type="hidden" name="gps" value="defaultgps" /> 
             
-            <label for="title">Title</label>
-            <input id="title" class="fullwidth" type="text" name="title" value="" />  
+            <div class="pure-control-group">
+                <label for="title">Title</label>
+                <input id="title" class="fullwidth" type="text" name="title" value="" placeholder="Descriptive title"/>  
+            </div>
+
+            <div class="pure-control-group">
+                <label for="deviceid" id="deviceidlabel"></label>
+                <input id="deviceid" class="fullwidth" type="text" name="deviceid" value="" />  
+            </div>
+
+            <div class="pure-control-group">
+                <label for="apikey" id="apikeylabel"></label>
+                <input id="apikey" class="fullwidth" type="text" name="apikey" value="" />  
+            </div>
             
-            <label for="deviceid">Device ID</label>
-            <input id="deviceid" class="fullwidth" type="text" name="deviceid" value="" />  
-            
-            <label for="apikey">API key (If known)</label>
-            <input id="apikey" class="fullwidth" type="text" name="apikey" value="" />  
-            
-            <label for="file">Upload file (if required)</label>
-            <input id="file" type="file" name="file" />
+            <div class="pure-control-group" id=fileupload>
+                <label for="file">File upload</label>
+                <input id="file" type="file" name="file" />
+            </div>
+
+            <div class="pure-control-group">
+                <label for="username" id="usernamelabel">Username</label>
+                <input id="username" class="fullwidth" type="text" name="username" value="" />  
+            </div>
+
+            <div class="pure-control-group">
+                <label for="password" id="passwordlabel">Password</label>
+                <input id="password" class="fullwidth" type="text" name="password" value="" />  
+            </div>
+
             <button id="upload-save" class="pure-button pure-button-primary">Save</button>
         </fieldset>
+        <div class="errors"> </div>
     </form>
 </div>
 
@@ -301,7 +334,7 @@ jQuery(document).ready(function(){
                 map.removeLayer(nodes[fid]);
             },
             error: function(e){
-                debug('Unable to delete node');
+                debug('Bad JSON response: Unable to delete node');
             }
         });
     }
@@ -309,7 +342,8 @@ jQuery(document).ready(function(){
 
     // SUBMIT UPLOAD FORM
     function ajaxsubmission(formid){
-        $(formid).submit(function(event){
+            $(formid+' .errors').css('display', 'none'); 
+            $(formid).submit(function(event){
             //disable the default form submission
             event.preventDefault();
             //grab all form data  
@@ -324,13 +358,26 @@ jQuery(document).ready(function(){
                 contentType: false,
                 processData: false,
                 success: function (data) {
-                    // Add new marker to map and remove the form
-                    debug(data);
-                    map.removeLayer(mapclickpopup);
-                    var fid = data['info']['fid'];
-                    var latlng = [data['info']['lat'], data['info']['lon'] ]; 
-                    var datatype = data['info']['datatype'];
-                    displaynode(fid, latlng, '', datatype);
+                    // Check if we have errors
+                    var msg = ''
+                    $.each(data['errors'], function( index, value ) {
+                        msg += '<strong>'+index+"</strong>: "+value;
+                    });
+                    // All is ok, lets add a new marker to the map
+                    if(msg.length <=0 ){
+                        map.removeLayer(mapclickpopup);
+                        var fid = data['info']['fid'];
+                        var latlng = [data['info']['lat'], data['info']['lon'] ]; 
+                        var datatype = data['info']['datatype'];
+                        debug('Created new marker');
+                        displaynode(fid, latlng, '', datatype);
+                    // Looks like we have some errors so lets feedback
+                    }else{
+                        msg = 'Failed to create new marker:<br />'+msg;
+                        debug(msg);
+                        $(formid+' .errors').html(msg);
+                        $(formid+' .errors').css('display', 'block');
+                    }
                 },
                 error: function(){
                     debug('JSON Error: Failed to create new marker')
@@ -385,10 +432,33 @@ jQuery(document).ready(function(){
     /* 	Generate an upload form */   
     function onMapClick(e) {
         var latlng = e.latlng.toString().replace('LatLng(', '').replace(')', '').replace(' ', '');
+        // Grab the uploadform html
         var html = jQuery('#uploadform').html();
+        // Set GPS coordiantes
         html = html.replace(/defaultgps/g , latlng);
+        // Create a popup form
         mapclickpopup = addpopup(e.latlng, html);  
         ajaxsubmission('#newmarker');
+        settitles('speck');
+        // Set form titles
+        $( "#datatype" ).change(function() {
+            $( "#datatype option:selected" ).each(function() {
+                  settitles( $( this ).val() );
+            });
+        });
+        function settitles(datatype){
+            switch (datatype) { 
+                case 'frackbox': 
+                    // Frackbox title
+                    $('#deviceidlabel').html('Serial');
+                    $('#apikeylabel').html('API Key');
+                    break;
+                case 'speck':
+                    // Speck titles
+                    $('#deviceidlabel').html('Device ID');
+                    $('#apikeylabel').html('Device name');
+            }
+        }
     }  
        
     // BUILD THE PAGE
