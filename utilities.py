@@ -52,6 +52,33 @@ class FileManager:
             value = array[1][i]
             ordered[key] = value
         return json.dumps(ordered)
+    
+    # Convert a csv string to a json string
+    def convert_csvtojson(self, csv):
+        try:
+            array = csv.split('\n')
+            header = array[0].split(',')
+            ordered = []
+            array.pop(0)
+            i = 0
+            for line in array:
+                vals = line.split(',')
+                ii=0
+                orderedvals = OrderedDict()
+                for val in vals:
+                    orderedvals[header[ii]] = vals[ii]
+                    ii += 1
+                ordered.append(orderedvals)
+                i += 1
+            jsonstr = json.dumps(ordered) 
+            return jsonstr
+        except:
+            return '{}'
+    
+    # Write data to csv files. Append data it already exists
+    def write_csvtofile(self, header, data):
+        # Check if the file exists
+        return True
 
     # Generate the filepath to the datadir when given an fid or uuid
     def grab_datapath(self, theid, whichpath='fidpath'):
@@ -122,9 +149,9 @@ class FileManager:
         # Check the new name doesn't already exist
         if not os.path.exists(fullpath):
             os.makedirs(fullpath)
-            return fullpath
+            return True
         else :
-            return "Error: No Directory Created"
+            return False
 
     # Create a new unique directory in the style of "0000001"
     def createUniqueDirAt(self, parentdir):
@@ -133,6 +160,8 @@ class FileManager:
         # Grab the most recently modified directory
         try:
             recent = max([os.path.join(parentdir,d) for d in os.listdir(parentdir)], key=os.path.getmtime) 
+            if recent == 'data/.gitignore':
+                recent = "0"
         except:
             recent = "0"
         recent = recent.replace(parentdir+'/', '') 
@@ -143,6 +172,7 @@ class FileManager:
         newdir=newdir.zfill(9)
         newfullpath = parentdir+'/'+newdir
         # Check the new name doesn't already exist
+        print('NEW PATH: '+newfullpath)
         success = self.createDirAt(newfullpath)
         # We done what we've needed so lets release the lock
         self.lock.release() 

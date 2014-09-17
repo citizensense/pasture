@@ -7,6 +7,7 @@ from controllers import Root, WebService
 from taskmanager import TaskManager
 from model import Model
 from utilities import FileManager
+import config
 
 # Config
 def get_config():
@@ -19,8 +20,14 @@ def get_config():
         'dustbin': 'dustbin',
         'taskmanager': TaskManager(),
         'model': Model(),
-        'filemanager': FileManager()
+        'filemanager': FileManager(),
+        'headerstring':'',
+        'headerlist':[],
+        'users':config.init() 
     })
+    # Generate the headerstr * headerlist
+    # TODO: Remove this once the Orderdict is substituted
+    cherrypy.config['model'].gen_csvheaders()
     # Per application config: Define routes
     return {
         '/': {
@@ -37,6 +44,7 @@ def get_config():
             'tools.staticdir.dir': './public'
         },
         # Simple authentification used for validating speck gateway application
+        # TODO: Create plugin specific hook so this plugin doesn't live here
         '/api/bodytrack/jupload': {
             'tools.auth_basic.on': True,
             'tools.auth_basic.realm': 'localhost',
@@ -44,9 +52,12 @@ def get_config():
         }
     }
 
-# Simple password authenification
-# TODO: Implement proper authenification
+# Allows us to access username/password sent by the Speck
+# TODO: Implement proper authenification, this is a hack for the moment...
+# TODO: Implement 'plugin' specific hook so this code doesn't live here!
 def validate_password(self, username, password):
+    print('USERNAME: '+username)
+    print('PASSWORD: '+password)
     return True
     if username in USERS and USERS[username] == password:
            return True

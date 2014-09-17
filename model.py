@@ -1,4 +1,4 @@
-import cherrypy, json, csv, time, uuid, os, sys,string, subprocess
+import cherrypy, json, csv, re, time, uuid, os, sys,string, subprocess
 
 class Model:
 
@@ -19,13 +19,16 @@ class Model:
                 'lat':'',
                 'lon':'',
                 'tags':'',
+                'createdby':'',
                 'submissiondata':''
                 #FIN
             },
+            'postedbody':'',
             'filestosave':[],
             'submitted':{},
             'errors':{},
-            'success':{} 
+            'success':{},
+            'altresponse':''
         }
         return data 
     
@@ -46,66 +49,57 @@ class Model:
             data.pop('filestosave', None)
             data['success']['code'] = '200 OK'
             data['success']['msg'] = 'A new node has been created' 
+            # If the module has its own response then send that instead
+            if data['altresponse'] is not '':
+                return data['altresponse']
         else:
             # The submission hasn't been recognised
             data.pop('filestosave', None)
             data.pop('info', None)
             data.pop("success", None)
             data['errors']['form'] = 'Post structure not recognised' 
-        print(data)
-        return data
+        return json.dumps(data)
     
     # CREATE A NEW NODE
     def create_node(self, data):
-        try:
-            # Really nasty hack!!! Gets the order of the data dict as it is written in the model
-            # TODO: Refactor dict into OrderedDict
-            command = "sed -n '/"+'#START'+"/,/"+'#FIN'+"/p' model.py" # Grab the text
-            command += "| sed -n \"2,11 p\" " # now grab the output between ;lines 2 & 11
-            command += "| awk -F \":\" '{print $1}' " # return a col
-            command += "| tr '\n' ',' " # replace new lines with a comma
-            command += "| tr -d \" '\t\n\r\"" # remove all white space
-            command += "| sed '$s/.$//'" # delete the last character
-            headerstring = subprocess.check_output(command, shell=True).decode('utf-8').strip()
+        fidpath = ''
+        valuestring = ''
+        # Attempt to create a new fid dir
+        try: 
             # Now lets create a unique fid and directory to store data
-            fid = cherrypy.config['filemanager'].createUniqueDirAt(cherrypy.config['datadir'])
-            fidpath = os.path.join(cherrypy.config['datadir'], fid)
-            data['info']['fid'] = fid
+            data['info']['fid'] = cherrypy.config['filemanager'].createUniqueDirAt(cherrypy.config['datadir'])
+            fidpath = os.path.join(cherrypy.config['datadir'], data['info']['fid'])
             # And create and 'original' dir 
             cherrypy.config['filemanager'].createDirAt(os.path.join(fidpath, 'original')) 
-            # Create a new info.csv file content
-            headerlist = headerstring.split(',')
-            valuestring = ""
-            s=''
-            for key in headerlist:
-                valuestring += s+str(data['info'][key])
-                s=','
+        except:
+            data['errors']['createdir'] = 'Error: Unable to create directory'
+        # Attempt to build new file content
+        try:
+            # Build new info.csv file content
+            values = []
+            for key in cherrypy.config['headerlist']:
+                # Escape all commas as we don't want them in our csv
+                val = str(data['info'][key]).replace(',','&#44;')
+                values.append(str(data['info'][key]))
+            valuestring = ','.join(values)
+        except:
+            data['errors']['createnode'] = 'Error: Unable to build info.csv'
+        # Attempt to save the new data
+        try:    
             # Save this new data to: datadir/fid/info.csv
-            # TODO: Check against ../../ etc being added to the fid!
-            infostring = '#'+headerstring+"\n"+valuestring
+            infostring = '#'+cherrypy.config['headerstring']+"\n"+valuestring
             infopath = os.path.join(fidpath, 'info.csv')
             cherrypy.config['filemanager'].saveStringToFile(infostring, infopath) 
         except:
-            data['errors']['createnode'] = 'Error: Unable to create directory or info.csv'
+            data['errors']['createnode'] = 'Error: Unable to write info.csv'
+        # TODO: If there are any fails, then delete the unique directory
         return data
     
     # RETURN A LIST OF ALL NODES WITH TITLE AND GPS
     def view_all(self):
-        # TODO: Abstract subprocess calls so a global try/except can be applied
-        # TODO: Perform a speedcheck against python native csv handler
-        # Grab all the info.csv files via the commandline
-        com = "cat data/*/info.csv"     # Grab the contents of all the info.csv files
-        com += " | grep -v ^# "         # Remove all the commented out elements
-        com += " | cut -d , -f 1,8,9,10"# Grab the lan/lon cols
-        com += " | sed 's/.*/\"&],/' "  # Format so we have a json string
-        com += " | sed 's/,/\":[\"/1' " # Format so we have a json string
-        com += " | sed 's/,/\",/1' "    # Format so we have a json string
-        com += " | sed 's/\[,\]/[]/'"   # Replace any empty strings
-        com += " | sed '$s/,$//'  "     # Delete the last character from the string
-        thebytes = subprocess.check_output(com, shell=True)
-        thestr = '{'+thebytes.decode("utf-8").strip()+'}'
-        return thestr
-    
+        jsonstr = self.dbgrab_cols(['fid','lat', 'lon','datatype', 'title'])
+        return jsonstr
+
     # VIEW AN INDIVIDUAL NODE
     def view_node(self, fid):
         jsonstr = cherrypy.config['filemanager'].grab_csvfile_asjson(fid, 'info.csv')
@@ -113,6 +107,7 @@ class Model:
         jsonstr = '{"info":'+jsonstr+'}'
         return jsonstr
     
+    # DELETE A NODE
     def delete_node(self, response, fid):
         print('DELETE: '+str(fid)+'\n')
         if cherrypy.config['filemanager'].move_dir('data/'+fid, 'dustbin/'+fid):
@@ -120,8 +115,68 @@ class Model:
         else:
             response['errors']['failed'] = "Failed to move to rubbish bin"
         return response
+    
+    # CHECK IF WE HAVE A VALID USER
+    def validuser(self, username='', pwd=''):
+        try:
+            # TODO: Check if a user is already logged in
+            uid = cherrypy.config['users'][username][0]
+            password = cherrypy.config['users'][username][1]
+            if pwd == password:
+                return uid
+            else:
+                return False
+        except:
+            return False
 
     # MODEL UTILITIES
+    # Grab a colum of data and output as a validated json string
+    def dbgrab_cols(self, keys):
+        # Convert the key names to position numbers
+        posstr = self.grab_colpositions(keys)
+        thestr = '{}'
+        if posstr is not '':
+            # TODO: Speed check! Perhaps its time to convert to mongoDB?? ;) 
+            # Grab all the info.csv files via the commandline
+            header = cherrypy.config['headerstring']
+            com =  " echo '"+header+"' "        # Echo the header into the script 
+            com += " | cut -d , -f "+posstr+";" # Only grab the header names we want
+            com += " cat data/*/info.csv"       # Grab the contents of all the info.csv files
+            com += " | grep -v ^# "             # Remove all the commented out elements
+            com += " | cut -d , -f "+posstr+""  # Grab the specified cols
+            # we've recieved a csv list in the order that they are saved in the CSV file
+            try:
+                csv = subprocess.check_output(com, shell=True).decode("utf-8").strip()
+                jsonstr = cherrypy.config['filemanager'].convert_csvtojson(csv)
+                return jsonstr
+            except:
+                return '{"error":"couldn\'t create valid json "}'
+    
+    # Search for a specific value. Return an fid number if found
+    # TODO: Speed test againt a database, pythons native function or other storage engine
+    def dbsearchfor_colval(self, col, value, regex='[^"a-zA-Z0-9-]+'):
+        # Lets get rid of any nasties: The default only allows alphanumeric characters and a dash
+        valuestrip = re.sub(regex, '', value)
+        # And perform the search
+        com = "cat data/*/info.csv | grep -v ^# | cut -d, -f 2 | grep '"+value+"' "
+        com += "| cut -d, -f1" # Just return the fid
+        try:
+            thestr = subprocess.check_output(com, shell=True).decode("utf-8").strip()
+        except:
+            return False
+        return thestr
+
+    # Convert key names to csv of of position values
+    def grab_colpositions(self, keys):
+        pos = []
+        posstr = ''
+        for key in keys:
+            try:
+                pos.append(cherrypy.config['headerlist'].index(key)+1)
+            except:
+                print('')
+        return ','.join(map(str, pos))
+
     #  Compare two lists and see if their contents match
     def match_keys(self, expected, provided):
         # List of field names we are expecting and specify 
@@ -133,8 +188,19 @@ class Model:
         if len(expected) is not len(provided):
             state = False
         return state
-
-
+    
+    # Really nasty hack!!! Gets the order of the data dict as it is written in the model
+    def gen_csvheaders(self):
+        # TODO: Refactor info dict into OrderedDict (didn't know they existsed at the time)
+        command = "sed -n '/"+'#START'+"/,/"+'#FIN'+"/p' model.py" # Grab the text
+        command += "| sed -n \"2,14 p\" " # now grab the output between ;lines 2 & 11
+        command += "| awk -F \":\" '{print $1}' " # return a col
+        command += "| tr '\n' ',' " # replace new lines with a comma
+        command += "| tr -d \" '\t\n\r\"" # remove all white space
+        command += "| sed '$s/.$//'" # delete the last character
+        cherrypy.config['headerstring'] = subprocess.check_output(command, shell=True).decode('utf-8').strip()
+        cherrypy.config['headerlist'] = cherrypy.config['headerstring'].split(',')
+        print(cherrypy.config['headerstring'])
 #==================================================================#
 #==============PLUGINS TO HANDLE MULTIPLE TYPES OF DATA SUBMISSION==================#
 #===================================================================================#
@@ -150,6 +216,12 @@ class UploadformSubmission:
         submitted = data['submitted'].keys()
         if cherrypy.config['model'].match_keys(expected, submitted) == False:
             return False
+        # Now check if this submission has been made by a valid user
+        uid = cherrypy.config['model'].validuser(data['submitted']['username'], data['submitted']['password'])
+        if uid is False:
+            data['errors']['user'] = 'This username/password combination has not been recognised'
+            return data
+        data['submitted']['username'] = uid
         # Now format each of the variables and save in 'data'
         for key in expected:
             var = getattr(self, "format_"+key)()
@@ -185,6 +257,9 @@ class UploadformSubmission:
         return
 
     def format_username(self):
+        # Set the created by field
+        # self.data['info']['createdby'] = session.userid  
+        # if cherrypy.config['users']['f'][0])
         return
 
     def format_password(self):
@@ -212,6 +287,7 @@ class UploadformSubmission:
         self.data['info']['datatype'] = self.data['submitted']['datatype'] 
 
     def format_apikey(self):
+        self.data['info']['apikey'] = self.data['submitted']['apikey']  
         return
     
 #================== SPEC GATEWAY APPLICATION ================================#
@@ -219,13 +295,43 @@ class SpecGatewaySubmission:
     
     # Check if submission is recognised, if it is, return structured data
     def checksubmission(self, data):
-        self.data = data
-        # List of field names we are expecting
+        # List of field names we are expecting. Reject if they don't match
         expected = ['dev_nickname']
         submitted = data['submitted'].keys()
         if cherrypy.config['model'].match_keys(expected, submitted) == False:
             return False
-        return self.data
+        # Lets see if we have a node to upload this data to
+        # TODO: Check if we are allowed to upload to this marker via Username/Password
+        fid = cherrypy.config['model'].dbsearchfor_colval('apikey', data['submitted']['dev_nickname'])
+        if fid is False:
+            data['altresponse'] = '{"result":"KO", "message":"No marker to upload to"}'
+            return data
+        if fid: 
+            # We have a marker so lets read the data                                                 
+            # TODO: Create a log so we can track uploads
+            try:
+                # Looks ok so lets load it
+                if data['postedbody'] != '{}': 
+                    js = json.loads(data['postedbody'])
+                    array = []
+                    # Create the csv header
+                    header = 'timestamp,'+','.join(js['channel_names'])
+                    # create the csv strings
+                    for x in js['data']:
+                        array.append( ','.join(map(str, x)) )
+                    (header)
+                    csv = '\n'.join(array)
+                    # All looks fine so report goodeness back to the gateway
+                    data['altresponse'] = '{"result":"OK","message":"Upload successful!","payload":{"successful_records":"1","failed_records":"0"}}'
+                else:
+                    # We've been sent empty JSON, but all is ok
+                    data['altresponse'] = '{"result":"OK"}'
+            except:
+                # Could be invalid JSON, so return an error to the gateway
+                data['altresponse'] = '{"result":"KO", "message":"Invalid JSON"}'
+            print('===============================')
+        # Specify the response which should be sent back to the speck gateway
+        return data
 
     def checkcsvfile(self, data):
         return False

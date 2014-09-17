@@ -59,6 +59,15 @@ class WebService(object):
     def POST(self, *args, **kwargs):
         # Initialise our data structure
         data=cherrypy.config['model'].submission_structure()
+        # Grab the post body
+        cl = cherrypy.request.headers['Content-Length']
+        data['postedbody'] = cherrypy.request.body.read(int(cl)).decode("utf-8")
+        # Lets print what we've been posted
+        print('================POSTED=================')
+        print(kwargs)
+        print(args)
+        print(data['postedbody'])
+        print('=====================================\n')
         # Lets see what's been posted & validate the submission
         for key in kwargs:
             # Check if we need to save a file
@@ -70,8 +79,10 @@ class WebService(object):
                 data['submitted'][key] = kwargs[key]
         # Parse the submission and save the data if its valid
         data = cherrypy.config['model'].parse_submission(data)
-        # Issue a JSON response to the POST
-        return json.dumps(data)
+        # Issue a response to the POST
+        print('===RETURN TO POST====================')
+        print(data)
+        return data
     
     # Write changes
     def PUT(self, another_string):

@@ -79,9 +79,9 @@
             <div class="pure-control-group">
                 <label for="upload-title">Type</label>
                 <select id="datatype" name="datatype">
+                    <option value="observation">OBSERVATION</option>
                     <option value="speck"><span>SPECK</option>
                     <option value="frackbox">FRACKBOX</option>
-                    <!--<option value="observation">Observation at this location</option>-->
                 </select>
             </div>
 
@@ -252,12 +252,18 @@ jQuery(document).ready(function(){
     
     // DISPLAY LIST OF NODES ON THE MAP
     function displaynodes(data){
+        debug(data)
         var msg = '';
+        console.log(data)
         $.each(data, function( index, val ) {
-            if(0 in val && 1 in val && 2 in val){
+            var fid = data[index]['fid'] 
+            var lat = data[index]['lat']
+            var lon = data[index]['lon']
+            var title = data[index]['title']
+            if(fid && lat && lon){
                 msg += index+', ';
-                var latlng = [val[1], val[2]];
-                displaynode(index, latlng, '', val[0]);
+                var latlng = [lat, lon];
+                displaynode(fid, latlng, title, fid);
             }else{
                 msg += 'No lat/lng for'+index+', ';
             }
@@ -268,7 +274,13 @@ jQuery(document).ready(function(){
     // DISPLAY NODE ON THE MAP
     function displaynode(id, latlng, title, datatype){
         debug('Display: '+datatype);
-        if(datatype=='frackbox'){
+        if(datatype=='observation'){
+            nodes[id] = new frackMarker(latlng,{
+                icon:observationBox,
+                clickable: true,
+                data: id
+            }).on('click', onClick).addTo(map);
+        }else if(datatype=='frackbox'){
             nodes[id] = new frackMarker(latlng,{
                 icon:frackBox,
                 clickable: true,
@@ -398,6 +410,15 @@ jQuery(document).ready(function(){
             maxZoom: 18
         }).addTo(map);
         // Define an icon. Images sourced from: http://preloaders.net
+        observationBox = L.icon({
+            iconUrl: '/public/images/30.gif',
+            shadowUrl: 'public/images/shadow.png',
+            iconSize:     [23, 23], // size of the icon
+            shadowSize:   [50, 50], // size of the shadow
+            iconAnchor:   [10, 10], // point of the icon which will correspond to marker's location
+            shadowAnchor: [18, 18], // the same for the shadow
+            popupAnchor:  [20, 0]   // point from which the popup should open relative to the iconAnchor
+        });
         frackBox = L.icon({
             iconUrl: '/public/images/29.gif',
             shadowUrl: 'public/images/shadow.png',
