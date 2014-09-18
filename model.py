@@ -93,7 +93,12 @@ class Model:
     # RETURN A LIST OF ALL NODES WITH TITLE AND GPS
     def view_all(self):
         jsonstr = self.dbgrab_cols(['fid','lat', 'lon','datatype', 'title', 'latest'])
-        #jsonstr = jsonstr.replace('&#44;', ',')
+        # Decode the json string saved in the csv
+        jsonstr = jsonstr.replace('&#44;', ',')
+        jsonstr = jsonstr.replace('"{\\"', '{"')
+        jsonstr = jsonstr.replace('}"', '}')
+        jsonstr = jsonstr.replace('\\"', '"')
+        print(jsonstr)
         return jsonstr
     
     # VIEW AN INDIVIDUAL NODE

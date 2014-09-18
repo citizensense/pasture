@@ -37,11 +37,28 @@ a:hover{
     left:0;
     z-index:1000;
     background:#000;
-    color:#ccc;
+    color:#999;
     padding:5px;
-    height:3em;
+    height:6em;
     text-align:center;
-}   
+}
+#tooltip ul{
+    margin:0px;
+    padding:0px;
+}
+#tooltip li{
+    display:block;
+    list-style-type:none;
+    padding:0px;
+    margin:3px;
+    float:left;
+    width:200px;
+} 
+#tooltip span{
+    display:block;
+    font-size:170%;
+    color:#ccc;
+}  
 label:first-letter,
 legend:first-letter{
     text-transform: capitalize
@@ -80,6 +97,7 @@ legend:first-letter{
     height:500px;
     background:#fff;
     z-index:1000;
+    overflow:hidden;
 }
 #information .tab{
     position:absolute;

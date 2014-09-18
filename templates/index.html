@@ -269,11 +269,15 @@ jQuery(document).ready(function(){
             var title = data[index]['title'];
             var datatype = data[index]['datatype']; 
             var latest = data[index]['latest'];
-            var content = '';
+            var content = '<li><strong>Title:</strong>'+title+'</li>';
             // TODO: Prep json properly on server side
-            //$.each(latestobj, function( i, v ) { 
-            //    content += '<li><strong>'+i+'</strong>:'+v+'</li>';
-            //});
+            $.each(latest['keys'], function( i, v ) { 
+                var value = latest['values'][i];
+                if(v=='timestamp'){
+                    
+                } 
+                content += '<li><strong>'+v+':</strong> <span>'+value+'</span></li>';
+            });
             var latest = '<ul>'+content+'</ul>';
             if(fid && lat && lon){
                 msg += index+', ';
@@ -308,11 +312,8 @@ jQuery(document).ready(function(){
         }
         // Load basic info on marker
         function onMouseOver(e){
-            infotext = this.options.fid
-            infotext += this.options.hovertext;
-            infotext += this.options.latest;
-            debug(infotext);
-            $('#tooltip').text(infotext);
+            infotext = this.options.latest;
+            $('#tooltip').html(infotext);
             $('#tooltip').css({
                 'display':'inline'
             });
