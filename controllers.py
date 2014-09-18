@@ -63,11 +63,11 @@ class WebService(object):
         cl = cherrypy.request.headers['Content-Length']
         data['postedbody'] = cherrypy.request.body.read(int(cl)).decode("utf-8")
         # Lets print what we've been posted
-        print('================POSTED=================')
-        print(kwargs)
-        print(args)
-        print(data['postedbody'])
-        print('=====================================\n')
+        #print('================POSTED=================')
+        #print(kwargs)
+        #print(args)
+        #print(data['postedbody'])
+        #print('=====================================\n')
         # Lets see what's been posted & validate the submission
         for key in kwargs:
             # Check if we need to save a file

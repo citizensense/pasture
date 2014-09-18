@@ -29,6 +29,24 @@ a:hover{
 .fullwidt{
     width:100%;
 }
+#tooltip{
+    display:none;
+    position:absolute;
+    bottom:0px;
+    right:0;
+    left:0;
+    z-index:1000;
+    background:#000;
+    color:#ccc;
+    padding:5px;
+    height:3em;
+    text-align:center;
+}   
+label:first-letter,
+legend:first-letter{
+    text-transform: capitalize
+}
+
 /* HEADER */
 #header{
 	position:absolute;

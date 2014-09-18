@@ -66,29 +66,31 @@
     <form id="newmarker" class="pure-form  pure-form-aligned" action="/api" method="post" enctype="multipart/form-data">
         <h2>Create new marker at:</h2>
         <fieldset>
-        
-            <label for="option-two" class="pure-radio">
-                <input type="radio" name="gpstype" value="option1" checked>
+            <label for="gpstype" class="pure-radio">
+                <input type="radio" name="gpstype" value="exact" checked>
                 Exact GPS: defaultgps
             </label>
-            <label for="option-three" class="pure-radio">
-                <input type="radio" name="gpstype" value="option2">
+            <label for="gpstype" id="gpstypelabel2" class="pure-radio">
+                <input type="radio" name="gpstype" value="fuzzy">
                 General location (Click map)
             </label>
 
             <div class="pure-control-group">
                 <label for="upload-title">Type</label>
                 <select id="datatype" name="datatype">
-                    <option value="observation">OBSERVATION</option>
                     <option value="speck"><span>SPECK</option>
+                    <option value="observation">OBSERVATION</option> 
                     <option value="frackbox">FRACKBOX</option>
                 </select>
             </div>
 
             <input id="gps" class="fullwidth" type="hidden" name="gps" value="defaultgps" /> 
-            
+        </fieldset>
+
+        <fieldset>
+            <legend><span id="replacedatatype"></span> information</legend>
             <div class="pure-control-group">
-                <label for="title">Title</label>
+                <label for="title" id="titlelable">Title</label>
                 <input id="title" class="fullwidth" type="text" name="title" value="" placeholder="Descriptive title"/>  
             </div>
 
@@ -106,7 +108,9 @@
                 <label for="file">File upload</label>
                 <input id="file" type="file" name="file" />
             </div>
-
+        </fieldset>
+        <fieldset>
+            <legend>Login</legend>
             <div class="pure-control-group">
                 <label for="username" id="usernamelabel">Username</label>
                 <input id="username" class="fullwidth" type="text" name="username" value="" />  
@@ -152,9 +156,12 @@
 
 </div>
 
-<script src="/public/js/d3.v3.js"></script>
+<div id="tooltip"></div>
+
 <script src="/public/js/jquery.min.js"></script>
 <script>jQuery.noConflict();</script>
+<!--
+<script src="/public/js/d3.v3.js"></script>
 <script src="/public/js/jquery-ui.min.js"></script>
 <script src="/public/js/Rickshaw.js"></script>
 <script src="/public/js/Rickshaw.Class.js"></script>
@@ -185,6 +192,7 @@
 <script src="/public/js/Rickshaw.Graph.Axis.Y.js"></script>
 <script src="/public/js/extensions.js"></script>
 <script src="/public/js/graph.js"></script>
+-->
 <script src="/public/js/leaflet.js"></script>
 
 <script>
@@ -252,18 +260,25 @@ jQuery(document).ready(function(){
     
     // DISPLAY LIST OF NODES ON THE MAP
     function displaynodes(data){
-        debug(data)
         var msg = '';
         console.log(data)
         $.each(data, function( index, val ) {
-            var fid = data[index]['fid'] 
-            var lat = data[index]['lat']
-            var lon = data[index]['lon']
-            var title = data[index]['title']
+            var fid = data[index]['fid'];
+            var lat = data[index]['lat'];
+            var lon = data[index]['lon'];
+            var title = data[index]['title'];
+            var datatype = data[index]['datatype']; 
+            var latest = data[index]['latest'];
+            var content = '';
+            // TODO: Prep json properly on server side
+            //$.each(latestobj, function( i, v ) { 
+            //    content += '<li><strong>'+i+'</strong>:'+v+'</li>';
+            //});
+            var latest = '<ul>'+content+'</ul>';
             if(fid && lat && lon){
                 msg += index+', ';
                 var latlng = [lat, lon];
-                displaynode(fid, latlng, title, fid);
+                displaynode(fid, latlng, title, datatype, latest);
             }else{
                 msg += 'No lat/lng for'+index+', ';
             }
@@ -272,32 +287,40 @@ jQuery(document).ready(function(){
     }
     
     // DISPLAY NODE ON THE MAP
-    function displaynode(id, latlng, title, datatype){
-        debug('Display: '+datatype);
-        if(datatype=='observation'){
-            nodes[id] = new frackMarker(latlng,{
-                icon:observationBox,
-                clickable: true,
-                data: id
-            }).on('click', onClick).addTo(map);
-        }else if(datatype=='frackbox'){
-            nodes[id] = new frackMarker(latlng,{
-                icon:frackBox,
-                clickable: true,
-                data: id
-            }).on('click', onClick).addTo(map);
-        }else{
-            nodes[id] = new frackMarker(latlng,{
-                icon:speckBox,
-                clickable: true,
-                data: id
-            }).on('click', onClick).addTo(map);
-        }
+    function displaynode(fid, latlng, title, datatype, latest){
+        debug('Display: '+datatype+' T:'+title);
+        nodes[fid] = new frackMarker(latlng,{
+            icon:eval(datatype+'Marker'),
+            clickable: true,
+            fid: fid,
+            hovertext: title,
+            latest: latest
+        })
+        .on('click', onClick)
+        .on('mouseover', onMouseOver)
+        .on('mouseout', onMouseOut)
+        .addTo(map);
+        // Load the data on a click event
         function onClick(e) {
-            fid = this.options.data;
+            fid = this.options.fid;
             loadnode(fid);
             setmenu('#nodedata');
-        } 
+        }
+        // Load basic info on marker
+        function onMouseOver(e){
+            infotext = this.options.fid
+            infotext += this.options.hovertext;
+            infotext += this.options.latest;
+            debug(infotext);
+            $('#tooltip').text(infotext);
+            $('#tooltip').css({
+                'display':'inline'
+            });
+        }
+        // Delete the basic info
+        function onMouseOut(e){
+            $('#tooltip').css({'display':'none'}).fadeOut('slow');   
+        }
     }
 
     // LOAD SINGLE NODE DATA
@@ -310,12 +333,13 @@ jQuery(document).ready(function(){
             async: false,
             cache: false,
             contentType: false,
+            dataType:'json',
             processData: false,
-            success: function (str) {
-                var data = JSON.parse(str);
+            success: function (data) {
                 var content = ''
+                console.log(data)
                 $('#nodedata .content').html('Loaded: '+fid);
-                $.each(data['info'], function( index, value ) {
+                $.each(data, function( index, value ) {
                     content += '<li><b>'+index+'</b>:'+value+'</li>';
                 });
                 content += '<hr /><a href="/api/edit/'+fid+'" class="pure-button pure-button-primary">edit</a>'
@@ -327,6 +351,9 @@ jQuery(document).ready(function(){
                 }).hover(function() {
                     $(this).css('cursor','pointer');
                 });
+            },
+            error: function(e){
+                debug('Bad JSON response: Unable to load JSON');   
             }
         });
     }
@@ -410,7 +437,7 @@ jQuery(document).ready(function(){
             maxZoom: 18
         }).addTo(map);
         // Define an icon. Images sourced from: http://preloaders.net
-        observationBox = L.icon({
+        observationMarker = L.icon({
             iconUrl: '/public/images/30.gif',
             shadowUrl: 'public/images/shadow.png',
             iconSize:     [23, 23], // size of the icon
@@ -419,7 +446,7 @@ jQuery(document).ready(function(){
             shadowAnchor: [18, 18], // the same for the shadow
             popupAnchor:  [20, 0]   // point from which the popup should open relative to the iconAnchor
         });
-        frackBox = L.icon({
+        frackboxMarker = L.icon({
             iconUrl: '/public/images/29.gif',
             shadowUrl: 'public/images/shadow.png',
             iconSize:     [23, 23], // size of the icon
@@ -428,7 +455,7 @@ jQuery(document).ready(function(){
             shadowAnchor: [18, 18],  // the same for the shadow
             popupAnchor:  [20, 0] // point from which the popup should open relative to the iconAnchor
         });
-        speckBox = L.icon({
+        speckMarker = L.icon({
             iconUrl: '/public/images/27.gif',
             shadowUrl: 'public/images/shadow.png',
             iconSize:     [23, 23], // size of the icon
@@ -437,22 +464,25 @@ jQuery(document).ready(function(){
             shadowAnchor: [18, 18],  // the same for the shadow
             popupAnchor:  [20, 0] // point from which the popup should open relative to the iconAnchor
         });
-
         frackMarker = L.Marker.extend({
             options: {
-                data: 'data'
+                fid: 'fid',
+                hovertext: 'title',
+                latest: 'latest'
             }
         });
         map.on('click', onMapClick);
     }
     /*  Add a popup. Example usage: addpopup([51.54193, 0.71995], "A message <strong>to</strong> display."); */
     function addpopup(latlng, content) { 
-        thispopup = L.popup();   
+        var thispopup = L.popup();   
         return thispopup.setLatLng(latlng).setContent(content).addTo(map);
     } 
-    /* 	Generate an upload form */   
+    /* 	Generate an upload form in the popup */   
     function onMapClick(e) {
         var latlng = e.latlng.toString().replace('LatLng(', '').replace(')', '').replace(' ', '');
+        // Set the defult text for the form
+        settitles('speck');
         // Grab the uploadform html
         var html = jQuery('#uploadform').html();
         // Set GPS coordiantes
@@ -460,7 +490,6 @@ jQuery(document).ready(function(){
         // Create a popup form
         mapclickpopup = addpopup(e.latlng, html);  
         ajaxsubmission('#newmarker');
-        settitles('speck');
         // Set form titles
         $( "#datatype" ).change(function() {
             $( "#datatype option:selected" ).each(function() {
@@ -468,19 +497,29 @@ jQuery(document).ready(function(){
             });
         });
         function settitles(datatype){
+            $('#replacedatatype').text(datatype);
+            $('#gpstypelabel2').css('display','none')
             switch (datatype) { 
+                case 'observation': 
+                    // Observation title
+                    $('#titlelabel').text('Description');
+                    $('#deviceidlabel').text('Observation');
+                    $('#apikeylabel').text('Observation');
+                    break;
                 case 'frackbox': 
                     // Frackbox title
-                    $('#deviceidlabel').html('Serial');
-                    $('#apikeylabel').html('API Key');
+                    $('#titlelabel').text('Title');
+                    $('#deviceidlabel').text('Serial');
+                    $('#apikeylabel').text('API Key');
                     break;
                 case 'speck':
                     // Speck titles
-                    $('#deviceidlabel').html('Device ID');
-                    $('#apikeylabel').html('Device name');
+                    $('#titlelabel').text('Title');
+                    $('#deviceidlabel').text('Device ID');
+                    $('#apikeylabel').text('Device name');
             }
         }
-    }  
+    } 
        
     // BUILD THE PAGE
     init();

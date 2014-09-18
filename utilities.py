@@ -88,7 +88,7 @@ class FileManager:
         else:
             fid = theid
         # Now lets build the path
-        datadir = os.path.join(os.path.dirname(__file__), cherrypy.config['datadir'])  
+        datadir = os.path.join(os.path.dirname(__file__), 'data')  
         fidpath = os.path.join(datadir, fid)  
         # And finally return the full path
         if whichpath is 'fidpath':

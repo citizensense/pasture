@@ -73,17 +73,10 @@ def get_app(config=None):
     root = Root()
     root.api = WebService()
     cherrypy.quickstart(root, '/', config)
-    # Mount the root to a new app instance
-    #cherrypy.tree.mount(root,"/", config)
-    # Or create another app with (potentially) a different config
-    #cherrypy.tree.mount(ExampleHelloWorld(), '/', config)
 
 # Start the app
 def start():
     get_app()
-    #cherrypy.engine.signals.subscribe() # Poss extra
-    #cherrypy.engine.start()
-    #cherrypy.engine.block()
 
 if __name__ == '__main__':
     start()
