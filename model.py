@@ -153,13 +153,15 @@ class Model:
                 return '{"error":"couldn\'t create valid json "}'
     
     # Search for a specific value. Return an fid number if found
+    # TODO: Warning!!! Needs to search for key positions!!
     # TODO: Speed test againt a database, pythons native function or other storage engine
     def dbsearchfor_colval(self, col, value, regex='[^"a-zA-Z0-9-]+'):
+        positions = self.grab_colpositions(['fid', col])
         # Lets get rid of any nasties: The default only allows alphanumeric characters and a dash
         valuestrip = re.sub(regex, '', value)
         # And perform the search
-        com = "cat data/*/info.csv | grep -v ^# | cut -d, -f 2 | grep '"+value+"' "
-        com += "| cut -d, -f1" # Just return the fid
+        com = "cat data/*/info.csv | grep -v ^# | cut -d, -f "+positions+" | grep '"+valuestrip+"' "
+        com += "| cut -d, -f1 " # Just return the fid
         try:
             thestr = subprocess.check_output(com, shell=True).decode("utf-8").strip()
         except:
@@ -201,6 +203,7 @@ class Model:
         cherrypy.config['headerstring'] = subprocess.check_output(command, shell=True).decode('utf-8').strip()
         cherrypy.config['headerlist'] = cherrypy.config['headerstring'].split(',')
         print(cherrypy.config['headerstring'])
+
 #==================================================================#
 #==============PLUGINS TO HANDLE MULTIPLE TYPES OF DATA SUBMISSION==================#
 #===================================================================================#
@@ -319,18 +322,23 @@ class SpecGatewaySubmission:
                     # create the csv strings
                     for x in js['data']:
                         array.append( ','.join(map(str, x)) )
-                    (header)
                     csv = '\n'.join(array)
-                    # All looks fine so report goodeness back to the gateway
-                    data['altresponse'] = '{"result":"OK","message":"Upload successful!","payload":{"successful_records":"1","failed_records":"0"}}'
                 else:
-                    # We've been sent empty JSON, but all is ok
+                    # We've been sent empty JSON, but all is ok, letrs halt the process
                     data['altresponse'] = '{"result":"OK"}'
+                    return data
             except:
                 # Could be invalid JSON, so return an error to the gateway
                 data['altresponse'] = '{"result":"KO", "message":"Invalid JSON"}'
-            print('===============================')
-        # Specify the response which should be sent back to the speck gateway
+                return data
+            # Now try and save the data to file
+            # And do the write
+            try:
+                cherrypy.config['datalogger'].log('data/'+fid+'/data.csv', header, csv)
+                # All looks fine so report goodeness back to the gateway
+                data['altresponse'] = '{"result":"OK","message":"Upload successful!","payload":{"successful_records":"1","failed_records":"0"}}'
+            except:
+                data['altresponse'] = '{"result":"KO","message":"Unable to save data to file"}'
         return data
 
     def checkcsvfile(self, data):

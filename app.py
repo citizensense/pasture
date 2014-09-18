@@ -7,6 +7,7 @@ from controllers import Root, WebService
 from taskmanager import TaskManager
 from model import Model
 from utilities import FileManager
+from LogCsvData import *
 import config
 
 # Config
@@ -21,6 +22,7 @@ def get_config():
         'taskmanager': TaskManager(),
         'model': Model(),
         'filemanager': FileManager(),
+        'datalogger': LogCsvData(),
         'headerstring':'',
         'headerlist':[],
         'users':config.init() 
