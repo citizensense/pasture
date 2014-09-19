@@ -4,6 +4,7 @@ __pycache__
 dustbin/*
 config.py
 data/*
+*.sqlite3
 
 # C extensions
 *.so

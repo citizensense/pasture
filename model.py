@@ -13,20 +13,20 @@ class Model:
         data={
             'info':{
                 #START
-                'fid':'',
-                'apikey':str(uuid.uuid1()),                
-                'created':int(time.time()),
-                'updated':int(time.time()),
-                'title':'',
-                'csvfile':'',
-                'deviceid': '',
-                'datatype':'',
-                'lat':'',
-                'lon':'',
-                'tags':'',
-                'createdby':'',
-                'submissiondata':'',
-                'latest':'{}'
+                'fid':'INTEGER PRIMARY KEY',
+                'apikey':'TEXT unique',                
+                'created':'INTEGER',
+                'updated':'INTEGER',
+                'title':'TEXT',
+                'csvfile':'TEXT',
+                'deviceid': 'TEXT',
+                'datatype':'TEXT',
+                'lat':'REAL',
+                'lon':'REAL',
+                'tags':'TEXT',
+                'createdby':'INT',
+                'submissiondata':'TEXT',
+                'latest':'TEXT'
                 #FIN
             },
             'postedbody':'',
