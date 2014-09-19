@@ -40,25 +40,32 @@ a:hover{
     color:#999;
     padding:5px;
     height:6em;
-    text-align:center;
 }
 #tooltip ul{
     margin:0px;
     padding:0px;
+    float:left;
 }
 #tooltip li{
     display:block;
     list-style-type:none;
     padding:0px;
-    margin:3px;
     float:left;
     width:200px;
+    overflow:hidden;
+    text-align:center;
 } 
 #tooltip span{
     display:block;
     font-size:170%;
     color:#ccc;
 }  
+#tooltip #toolinfo{
+    float:left;
+    width:250px;
+    margin-right:10px;
+    font-size:130%;
+}
 label:first-letter,
 legend:first-letter{
     text-transform: capitalize

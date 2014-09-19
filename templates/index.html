@@ -269,16 +269,16 @@ jQuery(document).ready(function(){
             var title = data[index]['title'];
             var datatype = data[index]['datatype']; 
             var latest = data[index]['latest'];
-            var content = '<li><strong>Title:</strong>'+title+'</li>';
+            var content = '<div id="toolinfo"><span>'+title+'</span>';
+            content += '<strong>Last updated:</strong><br />'+latest['last_updated'];
+            content += '</div><ul>'
             // TODO: Prep json properly on server side
-            $.each(latest['keys'], function( i, v ) { 
-                var value = latest['values'][i];
-                if(v=='timestamp'){
-                    
-                } 
-                content += '<li><strong>'+v+':</strong> <span>'+value+'</span></li>';
+            $.each(latest, function( i, v ) { 
+                if(i=="raw" || i=="concentration" || i=="humidity"){
+                    content += '<li><strong>'+i+'</strong> <span>'+v+'</span></li>';
+                }
             });
-            var latest = '<ul>'+content+'</ul>';
+            var latest = content+'</ul>';
             if(fid && lat && lon){
                 msg += index+', ';
                 var latlng = [lat, lon];

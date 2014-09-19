@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-import cherrypy, json, csv, re, time, uuid, os, sys,string, subprocess
+import cherrypy, json, csv, re, time, datetime, uuid, os, sys,string, subprocess
 from collections import OrderedDict
 
 # TODO: Security check fid variable
@@ -98,12 +98,16 @@ class Model:
         jsonstr = jsonstr.replace('"{\\"', '{"')
         jsonstr = jsonstr.replace('}"', '}')
         jsonstr = jsonstr.replace('\\"', '"')
-        print(jsonstr)
+        jsonstr = jsonstr.replace('"latest": "{}}', '"latest":{}}')
         return jsonstr
     
     # VIEW AN INDIVIDUAL NODE
     def view_node(self, fid):
         jsonstr = cherrypy.config['filemanager'].grab_csvfile_asjson(fid, 'info.csv')
+        #jsonstr = jsonstr.replace('&#44;', ',')
+        #jsonstr = jsonstr.replace('"{\\"', '{"')
+        #jsonstr = jsonstr.replace('}"', '}')
+        #jsonstr = jsonstr.replace('\\"', '"')
         return jsonstr
 
     # UPDATE SPECIFIED FIELDS OF A NODE
@@ -372,7 +376,7 @@ class SpecGatewaySubmission:
                     js = json.loads(data['postedbody'])
                     array = []
                     # Create the csv headera
-                    headerlist = ['timestamp']+js['channel_names']
+                    headerlist = ['last_updated', 'timestamp']+js['channel_names']
                     header = ','.join(headerlist)
                     # create the csv strings
                     for x in js['data']:
@@ -389,10 +393,19 @@ class SpecGatewaySubmission:
             # Now try and save the data to file
             try:
                 cherrypy.config['datalogger'].log('data/'+fid+'/data.csv', header, csv)
-                latest = OrderedDict() 
-                latest["keys"] = headerlist
-                latest["values"] = js['data'][-1]
+                latest = OrderedDict()
+                timestamp = js['data'][-1][0]
+                humantime = datetime.datetime.fromtimestamp(timestamp).strftime('%d %b %Y %I:%M%p')
+                values = [humantime]+js['data'][-1]
+                # Convert the last value to key value pairs
+                i = 0
+                for key in headerlist: 
+                    if key == 'raw_particles' : key = 'raw'
+                    if key == 'particle_concentration' : key = 'concentration'
+                    latest[key] = values[i]
+                    i += 1
                 lateststr = json.dumps(latest)
+                print(lateststr)
                 cherrypy.config['model'].update_node(fid, {'latest':lateststr})
                 data['altresponse'] = '{"result":"OK","message":"Upload successful!","payload":{"successful_records":"1","failed_records":"0"}}'
             except:
