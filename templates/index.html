@@ -263,26 +263,29 @@ jQuery(document).ready(function(){
         var msg = '';
         console.log(data)
         $.each(data, function( index, val ) {
-            var fid = data[index]['fid'];
-            var lat = data[index]['lat'];
-            var lon = data[index]['lon'];
-            var title = data[index]['title'];
-            var datatype = data[index]['datatype']; 
-            var latest = data[index]['latest'];
+            console.log(val['nid'])
+            var nid = val['nid'];
+            var lat = val['lat'];
+            var lon = val['lon'];
+            var title = val['title'];
+            var datatype = val['datatype']; 
+            var latest = val['latest'];
+            var created = val['created']
+            var updated = val['updated']
             var content = '<div id="toolinfo"><span>'+title+'</span>';
-            content += '<strong>Last updated:</strong><br />'+latest['last_updated'];
+            content += '<strong>Last updated:</strong><br />'+updated;
             content += '</div><ul>'
             // TODO: Prep json properly on server side
-            $.each(latest, function( i, v ) { 
+            $.ch(latest, function( i, v ) { 
                 if(i=="raw" || i=="concentration" || i=="humidity"){
                     content += '<li><strong>'+i+'</strong> <span>'+v+'</span></li>';
                 }
             });
             var latest = content+'</ul>';
-            if(fid && lat && lon){
+            if(nid && lat && lon){
                 msg += index+', ';
                 var latlng = [lat, lon];
-                displaynode(fid, latlng, title, datatype, latest);
+                displaynode(nid, latlng, title, datatype, latest);
             }else{
                 msg += 'No lat/lng for'+index+', ';
             }

@@ -14,9 +14,6 @@ import config
 # Config
 def get_config():
     # Global config - applies to all application instances
-    model = Model()
-    dbstructure = model.database_structure()
-    dbstructure['locals'] = None
     cherrypy.config.update({
         'server.socket_host': '0.0.0.0',
         'server.socket_port': 8787,
@@ -24,15 +21,17 @@ def get_config():
         'datadir': 'data',
         'dustbin': 'dustbin',
         'taskmanager': TaskManager(),
-        'model': model,
-        'db' : Database("data/db.sqlite3", dbstructure),
+        'dbfile':"data/db.sqlite3",
         'filemanager': FileManager(),
         'datalogger': LogCsvData(),
-        'headerstring':'',
-        'headerlist':[],
         'users':config.init(),
-        'g':{}
     })
+    # Initialise the database structure, creating tables if need
+    model = Model()
+    dbstructure = model.database_structure()
+    db = Database(cherrypy.config['dbfile'])
+    db.build(dbstructure, ignore='locals')
+    print(db.msg)
     # Per application config: Define routes
     return {
         '/': {

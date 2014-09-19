@@ -2,6 +2,7 @@
 import cherrypy, os, os.path, re, time, shutil, random, string, itertools, json
 from utilities import Switch
 from jinja2 import Environment, PackageLoader
+from model import *
 ENV = Environment(loader=PackageLoader('controllers', 'templates'))
 #TODO: Make this a session variable
 MSG = []  
@@ -24,6 +25,7 @@ class WebService(object):
     # Response to a GET request
     @cherrypy.tools.accept(media='text/plain')
     def GET(self, *vpath, **kwargs):
+        model = Model();
         path0=path1=path2=''
         pathlen = len(vpath)
         if pathlen >= 1:
@@ -33,11 +35,11 @@ class WebService(object):
         if pathlen >= 3:
             path2 = vpath[2]    
         # Return List of all nodes: /api/view 
-        #if path0=='viewall':
-        #    return cherrypy.config['model'].view_all()
+        if path0=='viewall':
+            return model.view_all()
         # View a single node
-        #elif path0=='view' and len(path1)>0:
-        #    return cherrypy.config['model'].view_node(path1)
+        elif path0=='view' and len(path1)>0:
+            return model.view_node(path1)
         return "0:"+path0+' 1:'+path1+' 2:'+path2
 
     # Response to a DELETE request

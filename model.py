@@ -1,16 +1,22 @@
 #!/usr/bin/python3
 import cherrypy, json, csv, re, time, datetime, uuid, os, sys,string, subprocess
 from collections import OrderedDict
+from database import *
 
 # TODO: Security check fid variable
 # TODO: Add list of 'registered devices' to config
 # TODO: Swap apikeys if new marked is created with the same one..
 class Model:
+    
+    # Create a database object for us to use
+    def __init__(self):
+        self.db = Database(cherrypy.config['dbfile'])
+        self.db.connect()
 
     # Construct 'raw' posted data structure where fid=UniqueDirectoryName
     def database_structure(self):
-        database_structure = OrderedDict([
-        ('nodes', [
+        dbstruct = OrderedDict([
+            ('nodes', [
                 ('nid', 'INTEGER PRIMARY KEY'),
                 ('apikey', 'TEXT unique'),                
                 ('created', 'INTEGER'),
@@ -29,8 +35,18 @@ class Model:
                 ('latest','TEXT'),
                 ('visible','INTEGER'),
             ]),
+            # This isn't created in the database, its just used for internal var storage
+            ('locals',{
+                'path':[],
+                'postedbody':'',
+                'filestosave':[],
+                'submitted':{},
+                'errors':{},
+                'success':{},
+                'altresponse':''
+            })
         ])
-        return database_structure 
+        return dbstruct 
     
     # Parse the submission and determine what we need to do with it
     def parse_submission(self, data):
@@ -72,7 +88,7 @@ class Model:
             # And create and 'original' dir 
             cherrypy.config['filemanager'].createDirAt(os.path.join(fidpath, 'original')) 
         except:
-            data['errors']['createdir'] = 'Error: Unable to create directory'
+            adata['errors']['createdir'] = 'Error: Unable to create directory'
         # Attempt to build new file content
         valuestring = self.gen_valuestring(cherrypy.config['headerlist'], data['info'])
         if valuestring is False: data['errors']['createnode'] = 'Error: Unable to build info.csv'
@@ -86,23 +102,27 @@ class Model:
       
     # RETURN A LIST OF ALL NODES WITH TITLE AND GPS
     def view_all(self):
-        jsonstr = self.dbgrab_cols(['fid','lat', 'lon','datatype', 'title', 'latest'])
-        # Decode the json string saved in the csv
-        jsonstr = jsonstr.replace('&#44;', ',')
-        jsonstr = jsonstr.replace('"{\\"', '{"')
-        jsonstr = jsonstr.replace('}"', '}')
-        jsonstr = jsonstr.replace('\\"', '"')
-        jsonstr = jsonstr.replace('"latest": "{}}', '"latest":{}}')
-        return jsonstr
+        fields = ['nid', 'lat', 'lon', 'title', 'datatype', 'latest', 'created', 'updated']
+        jsondisplay = self.db.readasjson('nodes', fields)
+        print(self.db.msg)
+        if jsondisplay:
+            #arr = json.loads(jsondisplay)
+            #n = 0
+            #for i in arr:
+            #    arr[n]['latest'] = json.loads(arr[n]['latest'])
+            #    n += 1
+            #return jsondumps(jsondisplay)
+            return jsondisplay
+        else: return '{}'
     
     # VIEW AN INDIVIDUAL NODE
     def view_node(self, fid):
-        jsonstr = cherrypy.config['filemanager'].grab_csvfile_asjson(fid, 'info.csv')
-        #jsonstr = jsonstr.replace('&#44;', ',')
-        #jsonstr = jsonstr.replace('"{\\"', '{"')
-        #jsonstr = jsonstr.replace('}"', '}')
-        #jsonstr = jsonstr.replace('\\"', '"')
-        return jsonstr
+        fields = ['nid', 'created', 'createdhuman', 
+              'apikey', 'updated', 'title', 'datatype', 'lat', 'lon', 'fuzzylatlon'
+        ]
+        jsondisplay = cherrypy.config['db'].readasjson('nodes', fields)
+        if jsondisplay: return jsondisplay
+        else: return '{}'
 
     # UPDATE SPECIFIED FIELDS OF A NODE
     def update_node(self, fid, keyvaluepairs):
