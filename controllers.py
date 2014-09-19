@@ -33,11 +33,11 @@ class WebService(object):
         if pathlen >= 3:
             path2 = vpath[2]    
         # Return List of all nodes: /api/view 
-        if path0=='viewall':
-            return cherrypy.config['model'].view_all()
+        #if path0=='viewall':
+        #    return cherrypy.config['model'].view_all()
         # View a single node
-        elif path0=='view' and len(path1)>0:
-            return cherrypy.config['model'].view_node(path1)
+        #elif path0=='view' and len(path1)>0:
+        #    return cherrypy.config['model'].view_node(path1)
         return "0:"+path0+' 1:'+path1+' 2:'+path2
 
     # Response to a DELETE request
@@ -58,10 +58,11 @@ class WebService(object):
     # Response to a POST
     def POST(self, *args, **kwargs):
         # Initialise our data structure
-        data=cherrypy.config['model'].submission_structure()
+        data=cherrypy.config['model'].database_structure()
         # Grab the post body
         cl = cherrypy.request.headers['Content-Length']
-        data['postedbody'] = cherrypy.request.body.read(int(cl)).decode("utf-8")
+        #data['locals']['postedbody'] = cherrypy.request.body.read(int(cl)).decode("utf-8")
+        #data['locals']['path'] = args
         # Lets print what we've been posted
         #print('================POSTED=================')
         #print(kwargs)
@@ -69,20 +70,20 @@ class WebService(object):
         #print(data['postedbody'])
         #print('=====================================\n')
         # Lets see what's been posted & validate the submission
-        for key in kwargs:
-            # Check if we need to save a file
-            if type(kwargs[key]) is cherrypy._cpreqbody.Part:
-                data['filestosave'].append(kwargs[key])
-                data['submitted'][key] = kwargs[key].filename 
-            # Nope its a list or string
-            else:
-                data['submitted'][key] = kwargs[key]
+        #for key in kwargs:
+        #    # Check if we need to save a file
+        #    if type(kwargs[key]) is cherrypy._cpreqbody.Part:
+        #        data['locals']['filestosave'].append(kwargs[key])
+        #        data['locals']['submitted'][key] = kwargs[key].filename 
+        #    # Nope its a list or string
+        #    else:
+        #        data['locals']['submitted'][key] = kwargs[key]
         # Parse the submission and save the data if its valid
         data = cherrypy.config['model'].parse_submission(data)
         # Issue a response to the POST
-        print('===RETURN TO POST====================')
-        print(data)
-        return data
+        #print('===RETURN TO POST====================')
+        #print(data)
+        return '{}'#data
     
     # Write changes
     def PUT(self, another_string):

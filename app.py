@@ -8,11 +8,15 @@ from taskmanager import TaskManager
 from model import Model
 from utilities import FileManager
 from LogCsvData import *
+from database import *
 import config
 
 # Config
 def get_config():
     # Global config - applies to all application instances
+    model = Model()
+    dbstructure = model.database_structure()
+    dbstructure['locals'] = None
     cherrypy.config.update({
         'server.socket_host': '0.0.0.0',
         'server.socket_port': 8787,
@@ -20,16 +24,15 @@ def get_config():
         'datadir': 'data',
         'dustbin': 'dustbin',
         'taskmanager': TaskManager(),
-        'model': Model(),
+        'model': model,
+        'db' : Database("data/db.sqlite3", dbstructure),
         'filemanager': FileManager(),
         'datalogger': LogCsvData(),
         'headerstring':'',
         'headerlist':[],
-        'users':config.init() 
+        'users':config.init(),
+        'g':{}
     })
-    # Generate the headerstr * headerlist
-    # TODO: Remove this once the Orderdict is substituted
-    cherrypy.config['model'].gen_csvheaders()
     # Per application config: Define routes
     return {
         '/': {

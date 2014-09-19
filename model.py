@@ -8,35 +8,29 @@ from collections import OrderedDict
 class Model:
 
     # Construct 'raw' posted data structure where fid=UniqueDirectoryName
-    def submission_structure(self):
-        #TODO: Send generation of uuid to a quede task as we need to check if it exists or not
-        data={
-            'info':{
-                #START
-                'fid':'INTEGER PRIMARY KEY',
-                'apikey':'TEXT unique',                
-                'created':'INTEGER',
-                'updated':'INTEGER',
-                'title':'TEXT',
-                'csvfile':'TEXT',
-                'deviceid': 'TEXT',
-                'datatype':'TEXT',
-                'lat':'REAL',
-                'lon':'REAL',
-                'tags':'TEXT',
-                'createdby':'INT',
-                'submissiondata':'TEXT',
-                'latest':'TEXT'
-                #FIN
-            },
-            'postedbody':'',
-            'filestosave':[],
-            'submitted':{},
-            'errors':{},
-            'success':{},
-            'altresponse':''
-        }
-        return data 
+    def database_structure(self):
+        database_structure = OrderedDict([
+        ('nodes', [
+                ('nid', 'INTEGER PRIMARY KEY'),
+                ('apikey', 'TEXT unique'),                
+                ('created', 'INTEGER'),
+                ('createdhuman', 'DATETIME DEFAULT CURRENT_TIMESTAMP'),
+                ('updated', 'INTEGER'),
+                ('title', 'TEXT'),
+                ('csvfile','TEXT'),
+                ('deviceid', 'TEXT'),
+                ('datatype','TEXT'),
+                ('lat','REAL'),
+                ('lon','REAL'),
+                ('fuzzylatlon', 'TEXT'),
+                ('tags','TEXT'),
+                ('createdby','INTEGER'),
+                ('submissiondata','TEXT'),
+                ('latest','TEXT'),
+                ('visible','INTEGER'),
+            ]),
+        ])
+        return database_structure 
     
     # Parse the submission and determine what we need to do with it
     def parse_submission(self, data):
