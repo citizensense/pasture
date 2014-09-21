@@ -119,11 +119,18 @@ class Model:
             return '{}'
     
     # VIEW AN INDIVIDUAL NODE
+    # TODO: This is inefficiant - no need to convert in/out of json...
     def view_node(self, nid):
-        fields = ['nid', 'lat', 'lon', 'title', 'datatype', 'latest', 'created', 'updated'] 
-        jsondisplay = self.db.readasjson('nodes', fields, [int(nid)])
-        print(self.db.msg)     
-        if jsondisplay: return jsondisplay
+        fields = ['datatype', 'apikey', 'title', 'description', 'lat', 'lon', 'createdhuman', 'updated', 
+                  'latest', 'nid', 'createdby']
+        jsonstr = self.db.readasjson('nodes', fields, [int(nid)])  
+        print(self.db.msg)
+        if jsonstr: 
+            print('SINGLE NODE: json response:\n'+jsonstr)    
+            data = json.loads(jsonstr)
+            node = data[0]
+            node['data'] = '{"header":[a,b,c], "values":[ [1,2,3], [1,2,3], [9,6,10] ]}'
+            return json.dumps(node)
         else: return '{}'
 
     # UPDATE SPECIFIED FIELDS OF A NODE
@@ -275,7 +282,7 @@ class UploadformSubmission:
             data['sessionid'] = '' 
             return data
         self.tosubmit['createdby'] = self.user['uid']
-        self.tosubmit['username'] = self.user['username']  
+        data['username'] = self.user['username']  
         data['sessionid'] = self.user['sessionid']
         # Now format each of the variables and save in 'data'
         for key in expected:

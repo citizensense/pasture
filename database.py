@@ -95,8 +95,8 @@ class Database:
     
     # Return a json formated list of a select query
     def readasjson(self, table, fields, nodelist=[]):
-        self.msg = '\n=========database readasjson()======'
-        try:
+            self.msg = '\n=========database readasjson()======'
+        #try:
             cursor = self.db.cursor() 
             fieldstr = ','.join(fields)
             where = ''
@@ -118,12 +118,12 @@ class Database:
                         try:
                             val = json.loads(val)
                         except Exception as e:
-                            val = json.loads('{"msg":"Invalid json saved in DB"}')
-                            self.msg += '\n'+str(e)
+                            val = json.loads('{}')
+                            self.msg += '\nAll ok though JSON not saved in DB: '+str(e)
                     arr[n][key] = val
                     i += 1
             return json.dumps(arr)
-        except Exception as e:
+        #except Exception as e:
             self.msg += '\n'+str(e)
             return False
     

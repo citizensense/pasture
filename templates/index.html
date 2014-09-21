@@ -202,14 +202,15 @@
 // MENU FUNCTIONS
 jQuery(document).ready(function(){
     
-    sessionid = '';
-
-    // INITIALISE & BUILD THE PAGE
+     // INITIALISE & BUILD THE PAGE
     function init(){ 
         // Some global vars
         $ = jQuery;
         debugcount = 0;
+        sessionid = '';
+        username = ''
         nodes = [];
+        setsessionidvis();
         // Build the page
         initmenu();
         setmenu('#debug');
@@ -345,16 +346,21 @@ jQuery(document).ready(function(){
             processData: false,
             success: function (data) {
                 setsessionidvis();
-                var content = ''
-                console.log(data)
+                var content = '';
+                console.log(nid);
                 $('#nodedata .content').html('Loaded: '+nid);
                 $.each(data, function( index, value ) {
-                    content += '<li><b>'+index+'</b>:'+value+'</li>';
+                    if(index!='data'){
+                        content += '<li><b>'+index+'</b>:'+value+'</li>';
+                    }
                 });
+                content += '<hr /><strong>The data</strong><br />'+data['data']
                 content += '<hr /><a href="/api/edit/'+nid+'" class="pure-button pure-button-primary">edit</a>'
                 content += '<a id=\'node'+nid+'\' href="#" class="pure-button pure-button-primary">delete</a>'
                 content += '<div id="nodemsg"></div>';
+                // Display data in the big message box
                 $('#nodedata .content').html(content);
+                // Setup the edit and delete buttons
                 $("#node"+nid).click(function(){
                     delete_node(nid);
                 }).hover(function() {
@@ -392,9 +398,11 @@ jQuery(document).ready(function(){
     function setsessionidvis(){
         $('#sessionid').val(sessionid); 
         if(sessionid == ''){
-            $('.sessionvis').css('display', 'block')
+            $('.sessionvis').css('display', 'block');
+            $('#loggedin').html(' <a href="#">[LOGIN]</a>');  
         }else{
-            $('.sessionvis').css('display', 'none') 
+            $('.sessionvis').css('display', 'none');
+            $('#loggedin').html(' <a href="#">[LOGOUT "'+username+'"]</a>');      
         }
     }
 
@@ -424,6 +432,7 @@ jQuery(document).ready(function(){
                     // Reset the session id
                     sessionid = data['sessionid'];
                     nsessions = data['nsessions']; 
+                    username = data['username']
                     setsessionidvis();
                     console.log('set vis');
                     // All is ok, lets add a new marker to the map
@@ -434,10 +443,6 @@ jQuery(document).ready(function(){
                         var lon = data['info']['lon'];  
                         var latlng = [lat, lon]; 
                         var datatype = data['info']['datatype'];
-                        var username = data['info']['username'];   
-                        if(sessionid != ''){
-                            $('#loggedin').text('['+username+']')
-                        }
                         debug('Created new marker');  
                         debug(sessionid);
                         debug('('+nsessions+') users logged in'); 
