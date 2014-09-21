@@ -381,20 +381,28 @@ class UploadformSubmission:
         return
     
 #================== SPEC GATEWAY APPLICATION ================================#
+# Test a fack Speck Gateway post with the following curl command in the terminal:
+#    curl -i -u f:f http://localhost:8787/api/bodytrack/upload -d dev_nickname=test -d channel_names='["a","b"]' -d data='[[1332754616,1,10], [1332754617,-1,20]]'
+#============================================================================#
 class SpecGatewaySubmission:
     
     # Check if submission is recognised, if it is, return structured data
     # TODO: This is looking a bit messy so tidy up & move try/except to individual calls
-    def checksubmission(self, data):
+    def checksubmission(self, model, data):
         # List of field names we are expecting. Reject if they don't match
         expected = ['dev_nickname']
         submitted = data['submitted'].keys()
-        if cherrypy.config['model'].match_keys(expected, submitted) == False:
+        if model.match_keys(expected, submitted) == False:
             return False
         # Lets see if we have a node to upload this data to
-        # TODO: Check if we e allowed to upload to this marker via Username/Password
-        fid = cherrypy.config['model'].dbsearchfor_colval('apikey', data['submitted']['dev_nickname'])
-        if fid is False:
+        searchfor = {'apikey':apikey}
+        intable = 'nodes'
+        returnfields = ['nid', 'createdby', 'datatype']
+        row = model.db.searchfor(intable, returnfields, searchfor)
+        print(model.db.msg)
+        return '{"result":"KO", "message":"No marker to upload to"}'
+        # Check login
+        if nid is False:
             data['altresponse'] = '{"result":"KO", "message":"No marker to upload to"}'
             return data
         else:
@@ -447,7 +455,8 @@ class SpecGatewaySubmission:
 class CitizenSenseKitSubmission:
 
     # Check if submission is recognised, if it is, return structured data
-    def checksubmission(self, data):
+    def checksubmission(self, model, data):
+        return False
         msg = ''
         self.data = data
         # List of field names we are expecting and specify:
