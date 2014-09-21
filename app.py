@@ -9,7 +9,7 @@ from model import Model
 from utilities import FileManager
 from LogCsvData import *
 from database import *
-import config
+import config, threading
 
 # Config
 def get_config():
@@ -25,17 +25,19 @@ def get_config():
         'filemanager': FileManager(),
         'datalogger': LogCsvData(),
         'users':config.init(),
+        'session':{},
+        'sessionlock':threading.Lock() # TODO: A quick hack
     })
     # Initialise the database structure, creating tables if need
     model = Model()
-    dbstructure = model.database_structure()
-    db = Database(cherrypy.config['dbfile'])
-    db.build(dbstructure, ignore='locals')
+    dbstruct = model.database_structure()
+    print(dbstruct)
+    db = Database(cherrypy.config['dbfile'], dbstruct, 'locals')
+    db.build()
     print(db.msg)
     # Per application config: Define routes
     return {
         '/': {
-            'tools.sessions.on': True,
             'tools.staticdir.root': os.path.abspath(os.getcwd())
         },
         '/api': {
@@ -50,6 +52,7 @@ def get_config():
         # Simple authentification used for validating speck gateway application
         # TODO: Create plugin specific hook so this plugin doesn't live here
         '/api/bodytrack/jupload': {
+            'tools.sessions.on': True,    
             'tools.auth_basic.on': True,
             'tools.auth_basic.realm': 'localhost',
             'tools.auth_basic.checkpassword': validate_password

@@ -1,18 +1,16 @@
 # Imports and base vars
-import cherrypy, os, os.path, re, time, shutil, random, string, itertools, json
+import cherrypy, os, os.path, re, time, shutil, random, string, itertools, json, uuid
 from utilities import Switch
 from jinja2 import Environment, PackageLoader
 from model import *
 ENV = Environment(loader=PackageLoader('controllers', 'templates'))
-#TODO: Make this a session variable
-MSG = []  
 
 #======ROOT=====================================================#
 class Root(object):
     @cherrypy.expose
     def index(self):
         template = ENV.get_template('index.html')
-        return template.render(the='variables', go='here it is')
+        return template.render()
 
 #======/api==POST-GET-PUT-DELETE-BACKEND=============================================#
 class WebService(object):
@@ -60,32 +58,33 @@ class WebService(object):
     # Response to a POST
     def POST(self, *args, **kwargs):
         # Initialise our data structure
-        data=cherrypy.config['model'].database_structure()
+        model = Model();  
+        dbstruct = model.database_structure()
+        # Grab the database fields and zero the values
+        dbfields = model.grab_dbfields()
+        dbfields = dbfields.fromkeys(dbfields['nodes'], '')
+        # Contruct the data object
+        data = dbstruct['locals'] 
+        data['info'] = dbfields
         # Grab the post body
         cl = cherrypy.request.headers['Content-Length']
-        #data['locals']['postedbody'] = cherrypy.request.body.read(int(cl)).decode("utf-8")
-        #data['locals']['path'] = args
-        # Lets print what we've been posted
-        #print('================POSTED=================')
-        #print(kwargs)
-        #print(args)
-        #print(data['postedbody'])
-        #print('=====================================\n')
+        data['body'] = cherrypy.request.body.read(int(cl)).decode("utf-8")
+        data['path'] = args
         # Lets see what's been posted & validate the submission
-        #for key in kwargs:
-        #    # Check if we need to save a file
-        #    if type(kwargs[key]) is cherrypy._cpreqbody.Part:
-        #        data['locals']['filestosave'].append(kwargs[key])
-        #        data['locals']['submitted'][key] = kwargs[key].filename 
-        #    # Nope its a list or string
-        #    else:
-        #        data['locals']['submitted'][key] = kwargs[key]
+        for key in kwargs:
+            # Check if we need to save a file
+            if type(kwargs[key]) is cherrypy._cpreqbody.Part:
+                data['filestosave'].append(kwargs[key])
+                data['submitted'][key] = kwargs[key].filename 
+            # Nope its a list or string
+            else:
+                data['submitted'][key] = kwargs[key]
         # Parse the submission and save the data if its valid
-        data = cherrypy.config['model'].parse_submission(data)
+        data = model.parse_submission(data)
         # Issue a response to the POST
-        #print('===RETURN TO POST====================')
-        #print(data)
-        return '{}'#data
+        print('\n===RETURN JSON ====================')
+        print(data)
+        return data
     
     # Write changes
     def PUT(self, another_string):

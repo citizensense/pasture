@@ -10,8 +10,13 @@ class Model:
     
     # Create a database object for us to use
     def __init__(self):
-        self.db = Database(cherrypy.config['dbfile'])
-        self.db.connect()
+        dbstruct = self.database_structure()
+        self.db = Database(cherrypy.config['dbfile'], dbstruct, ignore='locals')
+        self.dbfields = self.db.keys
+
+    # Return a nicely formated dict of the db fields
+    def grab_dbfields(self):
+        return self.dbfields
 
     # Construct 'raw' posted data structure where fid=UniqueDirectoryName
     def database_structure(self):
@@ -24,21 +29,22 @@ class Model:
                 ('updated', 'INTEGER'),
                 ('title', 'TEXT'),
                 ('csvfile','TEXT'),
-                ('deviceid', 'TEXT'),
+                ('description', 'TEXT'),
                 ('datatype','TEXT'),
                 ('lat','REAL'),
                 ('lon','REAL'),
                 ('fuzzylatlon', 'TEXT'),
                 ('tags','TEXT'),
                 ('createdby','INTEGER'),
-                ('submissiondata','TEXT'),
-                ('latest','TEXT'),
+                ('submissiondata','JSON'),
+                ('latest','JSON'),
                 ('visible','INTEGER'),
             ]),
             # This isn't created in the database, its just used for internal var storage
             ('locals',{
+                'info':{},
                 'path':[],
-                'postedbody':'',
+                'body':'',
                 'filestosave':[],
                 'submitted':{},
                 'errors':{},
@@ -48,6 +54,9 @@ class Model:
         ])
         return dbstruct 
     
+    def grab_opensessions(self):
+        return len(cherrypy.config['session'])
+
     # Parse the submission and determine what we need to do with it
     def parse_submission(self, data):
         # Grab the submitted data and convert it to JSON with all commas escaped to &#44;
@@ -57,17 +66,21 @@ class Model:
         plugins=(UploadformSubmission, SpecGatewaySubmission, CitizenSenseKitSubmission)
         for plugin in plugins:
             obj = plugin()
-            parsedoutput = obj.checksubmission(data)
+            parsedoutput = obj.checksubmission(self, data)
             if parsedoutput is not False: break
+        # Save the number of open sessions
+        data['nsessions'] = self.grab_opensessions()
         # Prepare for json response
         if parsedoutput:
-            # All looks OK
             data.pop('filestosave', None)
-            data['success']['code'] = '200 OK'
-            data['success']['msg'] = 'A new node has been created' 
-            # If the module has its own response then send that instead
-            if data['altresponse'] is not '':
-                return data['altresponse']
+            data.pop('submitted', None) 
+            if len(parsedoutput['errors']) < 1:
+                # All looks OK
+                data['success']['code'] = 'OK'
+                data['success']['msg'] = 'A new node has been created' 
+                # If the module has its own response then send that instead
+                if data['altresponse'] is not '':
+                    return data['altresponse']
         else:
             # The submission hasn't been recognised
             data.pop('filestosave', None)
@@ -78,26 +91,21 @@ class Model:
     
     # CREATE A NEW NODE
     def create_node(self, data):
-        fidpath = ''
-        valuestring = ''
-        # Attempt to create a new fid dir
-        try: 
-            # Now lets create a unique fid and directory to store data
-            data['info']['fid'] = cherrypy.config['filemanager'].createUniqueDirAt(cherrypy.config['datadir'])
-            fidpath = os.path.join(cherrypy.config['datadir'], data['info']['fid'])
-            # And create and 'original' dir 
-            cherrypy.config['filemanager'].createDirAt(os.path.join(fidpath, 'original')) 
-        except:
-            adata['errors']['createdir'] = 'Error: Unable to create directory'
-        # Attempt to build new file content
-        valuestring = self.gen_valuestring(cherrypy.config['headerlist'], data['info'])
-        if valuestring is False: data['errors']['createnode'] = 'Error: Unable to build info.csv'
-        # Prep and attempt to save the new data
-        infostring = cherrypy.config['headerstring']+"\n"+valuestring
-        infopath = os.path.join(fidpath, 'info.csv')
-        try:    cherrypy.config['filemanager'].saveStringToFile(infostring, infopath) 
-        except: data['errors']['createnode'] = 'Error: Unable to write info.csv'
-        # TODO: If there are any fails, then delete the unique directory
+        # As we are creating a single node lets create seperate field and value lists
+        fieldlist = []
+        valuelist = []
+        for key in data['info']:
+            fieldlist.append(key)
+            valuelist.append(data['info'][key])
+        # And construct the ordered dict ready for the database
+        newnode = OrderedDict([
+            ('fieldnames',fieldlist),
+            ('values',[valuelist])  
+        ]) 
+        nid = self.db.create('nodes', newnode)
+        print(self.db.msg)
+        if nid == None or False: data['errors']['dbcreatenode'] = 'Database could not create node'
+        else: data['info']['nid'] = nid
         return data
       
     # RETURN A LIST OF ALL NODES WITH TITLE AND GPS
@@ -106,46 +114,25 @@ class Model:
         jsondisplay = self.db.readasjson('nodes', fields)
         print(self.db.msg)
         if jsondisplay:
-            #arr = json.loads(jsondisplay)
-            #n = 0
-            #for i in arr:
-            #    arr[n]['latest'] = json.loads(arr[n]['latest'])
-            #    n += 1
-            #return jsondumps(jsondisplay)
             return jsondisplay
-        else: return '{}'
+        else:
+            return '{}'
     
     # VIEW AN INDIVIDUAL NODE
-    def view_node(self, fid):
-        fields = ['nid', 'created', 'createdhuman', 
-              'apikey', 'updated', 'title', 'datatype', 'lat', 'lon', 'fuzzylatlon'
-        ]
-        jsondisplay = cherrypy.config['db'].readasjson('nodes', fields)
+    def view_node(self, nid):
+        fields = ['nid', 'lat', 'lon', 'title', 'datatype', 'latest', 'created', 'updated'] 
+        jsondisplay = self.db.readasjson('nodes', fields, [int(nid)])
+        print(self.db.msg)     
         if jsondisplay: return jsondisplay
         else: return '{}'
 
     # UPDATE SPECIFIED FIELDS OF A NODE
-    def update_node(self, fid, keyvaluepairs):
-        headerlist = cherrypy.config['headerlist']
-        headerstring = cherrypy.config['headerstring']
-        path = 'data/'+fid+'/info.csv'
-        # First load the node
-        jsonstr = cherrypy.config['filemanager'].grab_csvfile_asjson(fid, 'info.csv') 
-        try:
-            infoobj = json.loads(jsonstr)
-        except:
-            return False
-        # Loop through the key value pairs and save new values to infobj
-        for key in keyvaluepairs:
-            # Make sure there are no commas
-            val = str(keyvaluepairs[key])
-            val = val.replace(',', '&#44;')
-            if key in infoobj:
-                infoobj[key] = val
-        valuestr = self.gen_valuestring(headerlist, infoobj)
-        if valuestr is False: return False 
-        infostring = headerstring+'\n'+valuestr
-        if cherrypy.config['filemanager'].saveStringToFile(infostring, path) is False:
+    def update_node(self, nid, fieldsnvalues):
+        update = self.db.update('nodes', 'nid', int(nid), fieldsnvalues)
+        print(self.db.update)
+        if update:
+            return True
+        else:
             return False
 
     # DELETE A NODE
@@ -157,85 +144,87 @@ class Model:
         #for item in keyvaluepairs:
         return response
     
-    # CHECK IF WE HAVE A VALID USER
-    def validuser(self, username='', pwd=''):
+    # MANAGE USER SESSIONS
+    # TODO: Tidy up! Convolyuted at the moment
+    # TODO: Cleanup old session ids
+    def validuser(self, uname='', pwd='', sid=''):
+        msg = "\n==== validuser() ======="
+        loggedin = False
         try:
-            # TODO: Check if a user is already logged in
-            uid = cherrypy.config['users'][username][0]
-            password = cherrypy.config['users'][username][1]
-            if pwd == password:
-                return uid
+            # First check if there are old session id's that need to be deleted
+            timeout = 60*60 # How many seconds to keep people logged in
+            currentime = int(time.time())  
+            todelete = []
+            for sessiondel in cherrypy.config['session']:
+                loggedinuser = cherrypy.config['session'][sessiondel]['username']
+                lastused = cherrypy.config['session'][sessiondel]['lastused']
+                sesslen = currentime - lastused
+                msg += "\n{} last logged in {} secs ago".format(loggedinuser, sesslen)
+                if sesslen >= timeout:
+                    msg += "\nWhich is more than {} secs ago so it has been deleted".format(timeout)
+                    todelete.append(sessiondel)
+            # Delete any old sessions
+            with cherrypy.config['sessionlock']:
+                for i in todelete:
+                    del cherrypy.config['session'][i]
+            # Check if a session id has been set and no password or username
+            if sid.strip() != '' and uname.strip() == '' and pwd.strip != '':
+                msg += "\nA session id has been sent to us with no pass or username: \n"+sid
+                # We have a sesion id so check if its available
+                if sid in cherrypy.config['session']:
+                    msg += "\nAnd it exists in one of the saved sessions so lets keep logged in"
+                    sessionid = sid
+                    uid = cherrypy.config['session'][sid]['uid']  
+                    username = cherrypy.config['session'][sid]['username']  
+                    permissions = cherrypy.config['session'][sid]['permissions']
+                    lastused = int(time.time())
+                    loggedin = True
+                else:
+                    msg += "\nThis session ID has not been recognised!: \n "
+            # Ok, no sessionid, so lets check if a username/password has been set
+            elif len(uname.strip()) > 0 and len(pwd.strip()) > 0:
+                msg += "\nNo session id But recieves password + username"
+                if uname not in cherrypy.config['users']:
+                    msg += "\nUsername not recognised: "+uname
+                else:
+                    msg += "\nUsername has been recognised:"+uname
+                    uid = cherrypy.config['users'][uname]['uid']
+                    username = uname
+                    password = cherrypy.config['users'][uname]['password']
+                    permissions = cherrypy.config['users'][uname]['permissions']  
+                    if pwd != password:
+                        msg += "\nPassword not recognised: "+pwd
+                    else:
+                        msg += "\nPassword has been recognised:"+pwd
+                        # All looks good so set the sessionid
+                        sessionid = str(uuid.uuid1())+str(len(cherrypy.config['session']))
+                        timestamp = int(time.time()) 
+                        with cherrypy.config['sessionlock']:
+                            cherrypy.config['session'][sessionid] = {}
+                            cherrypy.config['session'][sessionid]['uid'] = uid
+                            cherrypy.config['session'][sessionid]['username'] = username
+                            cherrypy.config['session'][sessionid]['lastused'] = timestamp
+                            cherrypy.config['session'][sessionid]['permissions'] = permissions
+                        msg += "\nCreated a new session:\n uid:{} \n username:{} \n pass: {} \n id: {}".format(uid, uname, password, sessionid)
+                        loggedin = True
             else:
+                msg += '\n No session id, No username, No password'
+            msg += '\n'+str(len(cherrypy.config['session']))+' sessions in list'
+            print(msg)
+            print( cherrypy.config['session'] )
+            if loggedin == True:
+                return {'uid':uid, 'username':username, 'sessionid':sessionid, 'permissions':permissions, 'msg':msg}
+            else:
+                print(msg)
+                print( cherrypy.config['session'] )
                 return False
-        except:
+        except Exception as e:
+            msg += '\nError with user validation: '+str(e)
+            print(msg)
+            print( cherrypy.config['session'] )
             return False
-
+        
     # MODEL UTILITIES
-    def gen_valuestring(self, keylist, keyvaluepairs):
-        # Build new info.csv file content
-        values = []
-        try:
-            for key in keylist:
-                # Escape all commas as we don't want them in our csv
-                val = str(keyvaluepairs[key]).replace(',','&#44;')
-                values.append(str(keyvaluepairs[key]))
-                valuestring = ','.join(values)
-        except:
-            return False
-        return valuestring
-
-    # Grab a colum of data and output as a validated json string
-    def dbgrab_cols(self, keys):
-        # Convert the key names to position numbers
-        posstr = self.grab_colpositions(keys)
-        thestr = '{}'
-        if posstr is not '':
-            # TODO: Speed check! Perhaps its time to convert to mongoDB?? ;) 
-            # Grab all the info.csv files via the commandline
-            header = cherrypy.config['headerstring']
-            com =  " echo '"+header+"' "        # Echo the header into the script 
-            com += " | cut -d , -f "+posstr+";" # Only grab the header names we want
-            com += " cat data/*/info.csv"       # Grab the contents of all the info.csv files
-            com += " | grep -v ^fid "           # Remove the header elements
-            com += " | cut -d , -f "+posstr+""  # Grab the specified cols
-            # we've recieved a csv list in the order that they are saved in the CSV file
-            try:
-                csv = subprocess.check_output(com, shell=True).decode("utf-8").strip()
-                jsonstr = cherrypy.config['filemanager'].convert_csvtojson(csv)
-                return jsonstr
-            except:
-                return '{"error":"couldn\'t create valid json "}'
-    
-    # Search for a specific value. Return an fid number if found
-    # TODO: Warning!!! Needs to search for key positions!!
-    # TODO: Speed test againt a database, pythons native function or other storage engine
-    def dbsearchfor_colval(self, col, value, regex='[^"a-zA-Z0-9-]+'):
-        positions = self.grab_colpositions(['fid', col])
-        # Lets get rid of any nasties: The default only allows alphanumeric characters and a dash
-        valuestrip = re.sub(regex, '', value)
-        # And perform the search
-        com = "cat data/*/info.csv | grep -v ^# | cut -d, -f "+positions+" | grep '"+valuestrip+"' "
-        com += "| cut -d, -f1 " # Just return the fid
-        #print('====================COM:\n'+com+'\n')
-        try:
-            thestr = subprocess.check_output(com, shell=True).decode("utf-8").strip()
-        except:
-            return False
-        if thestr == '':
-            return False
-        return thestr
-
-    # Convert key names to csv of of position values
-    def grab_colpositions(self, keys):
-        pos = []
-        posstr = ''
-        for key in keys:
-            try:
-                pos.append(cherrypy.config['headerlist'].index(key)+1)
-            except:
-                print('')
-        return ','.join(map(str, pos))
-
     #  Compare two lists and see if their contents match
     def match_keys(self, expected, provided):
         # List of field names we are expecting and specify 
@@ -248,21 +237,6 @@ class Model:
             state = False
         return state
     
-    # Really nasty hack!!! Gets the order of the data dict as it is written in the model
-    def gen_csvheaders(self):
-        data = self.submission_structure()
-        mlen = str(len(data['info'])+1)
-        # TODO: Refactor info dict into OrderedDict (didn't know they existsed at the time)
-        command = "sed -n '/"+'#START'+"/,/"+'#FIN'+"/p' model.py" # Grab the text
-        command += "| sed -n \"2,"+mlen+" p\" " # now grab the output between ;lines 2 & 11
-        command += "| awk -F \":\" '{print $1}' " # return a col
-        command += "| tr '\n' ',' " # replace new lines with a comma
-        command += "| tr -d \" '\t\n\r\"" # remove all white space
-        command += "| sed '$s/.$//'" # delete the last character
-        cherrypy.config['headerstring'] = subprocess.check_output(command, shell=True).decode('utf-8').strip()
-        cherrypy.config['headerlist'] = cherrypy.config['headerstring'].split(',')
-        print(cherrypy.config['headerstring'])
-
 #==================================================================#
 #==============PLUGINS TO HANDLE MULTIPLE TYPES OF DATA SUBMISSION==================#
 #===================================================================================#
@@ -271,51 +245,61 @@ class Model:
 class UploadformSubmission:
 
     # [REQUIRED METHOD] Check if submission is recognised, if it is, return structured data
-    def checksubmission(self, data):
+    def checksubmission(self, model, data):
         self.data = data
+        self.model = model
         # List of field names we are expecting
-        expected = ['gpstype','title', 'deviceid', 'gps', 'apikey', 'file', 'datatype', 'username', 'password']
+        expected = ['gpstype','title', 'description', 'gps', 'apikey', 'file', 'datatype', 'username', 'password', 'sessionid']
+        self.tosubmit = {
+            'title':'',
+            'description':'', 
+            'apikey':str(uuid.uuid1()), 
+            'fuzzylatlon':'',
+            'created':int(time.time()),
+            'updated':int(time.time()),
+            'createdby':None,
+            'datatype':'',
+            'submissiondata':'{}'
+        }
         submitted = data['submitted'].keys()
-        if cherrypy.config['model'].match_keys(expected, submitted) == False:
+        if self.model.match_keys(expected, submitted) == False:
             return False
         # Now check if this submission has been made by a valid user
-        uid = cherrypy.config['model'].validuser(data['submitted']['username'], data['submitted']['password'])
-        if uid is False:
-            data['errors']['user'] = 'This username/password combination has not been recognised'
+        username = data['submitted']['username']
+        password = data['submitted']['password']
+        sessionid = data['submitted']['sessionid']
+        # Check if we are logged in and save the session id if we are
+        self.user = self.model.validuser(username, password, sessionid)
+        if self.user is False:
+            data['errors']['user'] = 'This username/password combination has not been recognised. Or you may have been automatically logged out.'
+            data['sessionid'] = '' 
             return data
-        data['submitted']['username'] = uid
+        self.tosubmit['createdby'] = self.user['uid']
+        self.tosubmit['username'] = self.user['username']  
+        data['sessionid'] = self.user['sessionid']
         # Now format each of the variables and save in 'data'
         for key in expected:
             var = getattr(self, "format_"+key)()
-        # Things are looking OK so lets create a new node
-        newdata = cherrypy.config['model'].create_node(self.data)
+        self.tosubmit['submissiondata'] = json.dumps(data['submitted'])
+        self.data['info'] = self.tosubmit
+        # if there are no errors, create a new node
+        if len(self.data['errors']) <=0:
+            newdata = self.model.create_node(self.data)
         # Return the data
         return self.data
-    
-    # [REQUIRED METHOD]
-    def checkcsvfile(self, data):
-        # Lets grab the file path of this csv file and check it exists
-        filename = data['info']['csvfile']
-        theid = data['info']['fid']
-        fullfilepath = cherrypy.config['filemanager'].grab_originalfilepath(theid, filename)
-        if fullfilepath is False: return
-        # Now grab the first line of the file
-        csvheader = cherrypy.config['filemanager'].grabheader(fullfilepath)
-        lookslike="sample_timestamp_utc_secs,raw_particle_count,particle_count,humidity,download_timestamp_utc_millis"
-        # If it looks familiar Create a task to convert the csv file to a format ready for view
-        if csvheader != lookslike: return
-        # Create a task to convert the csv file to a format ready for view
-        #cherrypy.config['taskmanager'].add( { 'type':'test', 'data': data } )  
         
     def format_gps(self):
         latlon = self.data['submitted']['gps'].split(',')
         try:
-            self.data['info']['lat'] = latlon[0]
-            self.data['info']['lon'] = latlon[1]
+            self.tosubmit['lat'] = float(latlon[0])
+            self.tosubmit['lon'] = float(latlon[1])
         except:
             return
     
     def format_gpstype(self):
+        return
+ 
+    def format_sessionid(self):
         return
 
     def format_username(self):
@@ -329,39 +313,64 @@ class UploadformSubmission:
 
     def format_file(self):
         # Check we have a file in the correct format
-        filename = self.data['submitted']['file']
+        #filename = self.data['submitted']['file']
         #  Check we can save files of this type
-        if cherrypy.config['filemanager'].fileisoneof(filename, 'csv' ) is False:
-            return False
+        #if cherrypy.config['filemanager'].fileisoneof(filename, 'csv' ) is False:
+        #    return False
         # Now save the filename
-        self.data['info']['csvfile'] = filename
+        #self.data['info']['csvfile'] = filename
         # And save the file
         # TODO: Add save chunks here....
-    
+        return
+
     def format_title(self):
-        # TODO: Escape commas from the title
-        self.data['info']['title'] = self.data['submitted']['title']       
-    
-    def format_deviceid(self):
-        self.data['info']['deviceid'] = self.data['submitted']['deviceid']
+        title = self.data['submitted']['title'].strip()
+        if title != '':
+            self.tosubmit['title'] = self.data['submitted']['title']       
+        else:
+            self.data['errors']['title'] = 'Title needs to be filled in'
+
+    def format_description(self):
+        datatype = self.data['submitted']['datatype']
+        description = self.data['submitted']['description']
+        if datatype == 'observation' and len(description) < 1:
+            self.data['errors']['description'] = 'Please fill in a description for this Observation'
+        self.tosubmit['description'] = description
 
     def format_datatype(self):
-        self.data['info']['datatype'] = self.data['submitted']['datatype'] 
+        self.tosubmit['datatype'] = self.data['submitted']['datatype'] 
 
     def format_apikey(self):
+        # Set some basic vars
         apikey = self.data['submitted']['apikey']  
-        # Check if an APIkey already exists
-        fid = cherrypy.config['model'].dbsearchfor_colval('apikey', apikey)
-        self.data['info']['apikey'] = apikey   
-        # TODO: Check if this user is allowed to edit this node
-        # TODO: Associate user id's with specific devices
-        # TODO: Create universal file lock system: V.important!!
-        print("FOUND API KEY: "+str(fid))
-        if fid is not False:
-            # The key does exist, so lets replace the old value with a new one
-            self.data['info']['apikey'] = self.data['submitted']['apikey']     
-            newkey = str(uuid.uuid1())
-            cherrypy.config['model'].update_node(fid, {'apikey':newkey})
+        if apikey.strip() != '':self.tosubmit['apikey'] = apikey    
+        # Does this API key already exist?
+        datatype = self.data['submitted']['datatype']
+        searchfor = {'apikey':apikey}
+        intable = 'nodes'
+        returnfields = ['nid', 'createdby', 'datatype']
+        row = self.model.db.searchfor(intable, returnfields, searchfor)
+        print(self.model.db.msg)
+        # This key doesn't exist so go ahead and use it
+        if row is None:
+            if apikey.strip() != '':self.tosubmit['apikey'] = apikey
+        else:
+            # Check if the current user can edit the node
+            if self.user['uid'] == row[1] or self.user['permissions'] == 'admin':
+                print("SWAPPING KEYS")
+                # The key does exist, so lets replace the old value with a new one
+                newkey = str(uuid.uuid1())
+                # UPDATE NODE WHERE
+                table = 'nodes'
+                idname = 'nid'
+                idval = row[0]
+                fieldnvalues = {'apikey':newkey}
+                self.model.db.update(table, idname, idval, fieldnvalues)  
+                print(self.model.db.msg)
+            else:
+                device = self.data['submitted']['datatype']
+                self.data['errors']['DeviceNameClash'] = 'Someone has already created a marker with this Device name'
+                self.data['errors']['action'] = 'Please contact citizensense if you would like to create a new marker using this Device Name.'   
         return
     
 #================== SPEC GATEWAY APPLICATION ================================#

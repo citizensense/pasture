@@ -26,7 +26,7 @@
 <body>
 
 <div id="header">
-	<h1 id="maintitle"><a href="#" class="pure-menu-heading">Frackbox</a></h1>
+	<h1 id="maintitle"><a href="#" class="pure-menu-heading">Frackbox</a><span id='loggedin'></span></h1>
 	<div id="mainmenu" class="pure-menu pure-menu-open pure-menu-horizontal">
 	   	<ul>
 	        <li><a id="uploadbutton" href="#">Upload</a></li> 
@@ -85,31 +85,33 @@
             </div>
 
             <input id="gps" class="fullwidth" type="hidden" name="gps" value="defaultgps" /> 
+            <input id="sessionid" class="fullwidth" type="hidden" name="sessionid" value="defaultsessionid"/> 
         </fieldset>
 
         <fieldset>
             <legend><span id="replacedatatype"></span> information</legend>
             <div class="pure-control-group">
                 <label for="title" id="titlelable">Title</label>
-                <input id="title" class="fullwidth" type="text" name="title" value="" placeholder="Descriptive title"/>  
+                <input id="title" class="fullwidth" type="text" name="title" value="" placeholder="Title"/>  
             </div>
-
-            <div class="pure-control-group">
-                <label for="deviceid" id="deviceidlabel"></label>
-                <input id="deviceid" class="fullwidth" type="text" name="deviceid" value="" />  
-            </div>
-
+   
             <div class="pure-control-group">
                 <label for="apikey" id="apikeylabel"></label>
                 <input id="apikey" class="fullwidth" type="text" name="apikey" value="" />  
             </div>
-            
+
+            <div class="pure-control-group">
+                <label for="description" id="descriptionlabel">Description</label>
+                <textarea id="description" class="fullwidth" type="text" name="description"/></textarea>
+            </div>
+
+                        
             <div class="pure-control-group" id=fileupload>
                 <label for="file">File upload</label>
                 <input id="file" type="file" name="file" />
             </div>
         </fieldset>
-        <fieldset>
+        <fieldset class='sessionvis'>
             <legend>Login</legend>
             <div class="pure-control-group">
                 <label for="username" id="usernamelabel">Username</label>
@@ -120,10 +122,11 @@
                 <label for="password" id="passwordlabel">Password</label>
                 <input id="password" class="fullwidth" type="text" name="password" value="" />  
             </div>
-
-            <button id="upload-save" class="pure-button pure-button-primary">Save</button>
         </fieldset>
-        <div class="errors"> </div>
+        <fieldset> 
+            <button id="upload-save" class="pure-button pure-button-primary">Save</button>
+            <div class="errors"> </div>
+        </fieldset>
     </form>
 </div>
 
@@ -199,6 +202,8 @@
 // MENU FUNCTIONS
 jQuery(document).ready(function(){
     
+    sessionid = '';
+
     // INITIALISE & BUILD THE PAGE
     function init(){ 
         // Some global vars
@@ -263,7 +268,6 @@ jQuery(document).ready(function(){
         var msg = '';
         console.log(data)
         $.each(data, function( index, val ) {
-            console.log(val['nid'])
             var nid = val['nid'];
             var lat = val['lat'];
             var lon = val['lon'];
@@ -276,7 +280,7 @@ jQuery(document).ready(function(){
             content += '<strong>Last updated:</strong><br />'+updated;
             content += '</div><ul>'
             // TODO: Prep json properly on server side
-            $.ch(latest, function( i, v ) { 
+            $.each(latest, function( i, v ) {  
                 if(i=="raw" || i=="concentration" || i=="humidity"){
                     content += '<li><strong>'+i+'</strong> <span>'+v+'</span></li>';
                 }
@@ -294,12 +298,12 @@ jQuery(document).ready(function(){
     }
     
     // DISPLAY NODE ON THE MAP
-    function displaynode(fid, latlng, title, datatype, latest){
+    function displaynode(nid, latlng, title, datatype, latest){
         debug('Display: '+datatype+' T:'+title);
-        nodes[fid] = new frackMarker(latlng,{
+        nodes[nid] = new frackMarker(latlng,{
             icon:eval(datatype+'Marker'),
             clickable: true,
-            fid: fid,
+            nid: nid,
             hovertext: title,
             latest: latest
         })
@@ -309,8 +313,8 @@ jQuery(document).ready(function(){
         .addTo(map);
         // Load the data on a click event
         function onClick(e) {
-            fid = this.options.fid;
-            loadnode(fid);
+            nid = this.options.nid;
+            loadnode(nid);
             setmenu('#nodedata');
         }
         // Load basic info on marker
@@ -329,10 +333,10 @@ jQuery(document).ready(function(){
 
     // LOAD SINGLE NODE DATA
     // TODO: Create a local cache so we don't keep reloading the same nodes
-    function loadnode(fid){
-        $('#nodedata .content').html('Loading: '+fid);
+    function loadnode(nid){
+        $('#nodedata .content').html('Loading: '+nid);
         $.ajax({
-            url: '/api/view/'+fid,
+            url: '/api/view/'+nid,
             type: 'GET',
             async: false,
             cache: false,
@@ -340,18 +344,19 @@ jQuery(document).ready(function(){
             dataType:'json',
             processData: false,
             success: function (data) {
+                setsessionidvis();
                 var content = ''
                 console.log(data)
-                $('#nodedata .content').html('Loaded: '+fid);
+                $('#nodedata .content').html('Loaded: '+nid);
                 $.each(data, function( index, value ) {
                     content += '<li><b>'+index+'</b>:'+value+'</li>';
                 });
-                content += '<hr /><a href="/api/edit/'+fid+'" class="pure-button pure-button-primary">edit</a>'
-                content += '<a id=\'node'+fid+'\' href="#" class="pure-button pure-button-primary">delete</a>'
+                content += '<hr /><a href="/api/edit/'+nid+'" class="pure-button pure-button-primary">edit</a>'
+                content += '<a id=\'node'+nid+'\' href="#" class="pure-button pure-button-primary">delete</a>'
                 content += '<div id="nodemsg"></div>';
                 $('#nodedata .content').html(content);
-                $("#node"+fid).click(function(){
-                    delete_node(fid);
+                $("#node"+nid).click(function(){
+                    delete_node(nid);
                 }).hover(function() {
                     $(this).css('cursor','pointer');
                 });
@@ -363,9 +368,9 @@ jQuery(document).ready(function(){
     }
 
     // DELETE NODE
-    function delete_node(fid){
+    function delete_node(nid){
         $.ajax({
-            url: '/api/deletenode/'+fid,
+            url: '/api/deletenode/'+nid,
             type: 'DELETE',
             dataType: 'json',
             async: false,
@@ -373,15 +378,25 @@ jQuery(document).ready(function(){
             contentType: false,
             processData: false,
             success: function (data) {
+                setsessionidvis();
                 debug(data['msg'])
-                map.removeLayer(nodes[fid]);
+                map.removeLayer(nodes[nid]);
             },
             error: function(e){
                 debug('Bad JSON response: Unable to delete node');
             }
         });
     }
-
+    
+    // SET VISIBILITY AND CONTENT OF SESSION FIELDS
+    function setsessionidvis(){
+        $('#sessionid').val(sessionid); 
+        if(sessionid == ''){
+            $('.sessionvis').css('display', 'block')
+        }else{
+            $('.sessionvis').css('display', 'none') 
+        }
+    }
 
     // SUBMIT UPLOAD FORM
     function ajaxsubmission(formid){
@@ -404,25 +419,42 @@ jQuery(document).ready(function(){
                     // Check if we have errors
                     var msg = ''
                     $.each(data['errors'], function( index, value ) {
-                        msg += '<strong>'+index+"</strong>: "+value;
+                        msg += '<li><strong>'+index+"</strong>: "+value+'</li>';
                     });
+                    // Reset the session id
+                    sessionid = data['sessionid'];
+                    nsessions = data['nsessions']; 
+                    setsessionidvis();
+                    console.log('set vis');
                     // All is ok, lets add a new marker to the map
                     if(msg.length <=0 ){
                         map.removeLayer(mapclickpopup);
-                        var fid = data['info']['fid'];
-                        var latlng = [data['info']['lat'], data['info']['lon'] ]; 
+                        var nid = data['info']['nid'];
+                        var lat = data['info']['lat'];
+                        var lon = data['info']['lon'];  
+                        var latlng = [lat, lon]; 
                         var datatype = data['info']['datatype'];
-                        debug('Created new marker');
-                        displaynode(fid, latlng, '', datatype);
+                        var username = data['info']['username'];   
+                        if(sessionid != ''){
+                            $('#loggedin').text('['+username+']')
+                        }
+                        debug('Created new marker');  
+                        debug(sessionid);
+                        debug('('+nsessions+') users logged in'); 
+                        console.log(data['info']); 
+                        debug('Created new marker'); 
+                        displaynode(nid, latlng, '', datatype);
                     // Looks like we have some errors so lets feedback
                     }else{
-                        msg = 'Failed to create new marker:<br />'+msg;
+                        msg = 'Failed to create new marker:<ul>'+msg+'</ul>';
                         debug(msg);
                         $(formid+' .errors').html(msg);
                         $(formid+' .errors').css('display', 'block');
                     }
                 },
                 error: function(){
+                    $(formid+' .errors').html('<strong>Json error:</strong> failed to create new marker');  
+                    $(formid+' .errors').css('display', 'block');  
                     debug('JSON Error: Failed to create new marker')
                 }
             });
@@ -470,7 +502,7 @@ jQuery(document).ready(function(){
         });
         frackMarker = L.Marker.extend({
             options: {
-                fid: 'fid',
+                nid: 'nid',
                 hovertext: 'title',
                 latest: 'latest'
             }
@@ -491,6 +523,8 @@ jQuery(document).ready(function(){
         var html = jQuery('#uploadform').html();
         // Set GPS coordiantes
         html = html.replace(/defaultgps/g , latlng);
+        // Set the session id
+        html = html.replace(/defaultsessionid/g , sessionid);  
         // Create a popup form
         mapclickpopup = addpopup(e.latlng, html);  
         ajaxsubmission('#newmarker');
@@ -501,26 +535,40 @@ jQuery(document).ready(function(){
             });
         });
         function settitles(datatype){
+            setsessionidvis();
             $('#replacedatatype').text(datatype);
-            $('#gpstypelabel2').css('display','none')
+            $('#gpstypelabel2').css('display','none');
+            $('#apikey').val('');  
             switch (datatype) { 
                 case 'observation': 
                     // Observation title
-                    $('#titlelabel').text('Description');
-                    $('#deviceidlabel').text('Observation');
-                    $('#apikeylabel').text('Observation');
+                    $('#titlelabel').text('Title');
+                    $('#descriptionlabel').text('Description');
+                    $('#apikeylabel').text('');
+                    fielddisplay('hide');
                     break;
                 case 'frackbox': 
                     // Frackbox title
                     $('#titlelabel').text('Title');
-                    $('#deviceidlabel').text('Serial');
-                    $('#apikeylabel').text('API Key');
+                    $('#descriptionlabel').text('Description');
+                    $('#apikeylabel').text('Serial number');
+                    fielddisplay('show');
                     break;
                 case 'speck':
                     // Speck titles
                     $('#titlelabel').text('Title');
-                    $('#deviceidlabel').text('Device ID');
+                    $('#descriptionlabel').text('Description');
                     $('#apikeylabel').text('Device name');
+                    fielddisplay('show');
+            }
+            function fielddisplay(val){
+                if(val=='show'){
+                    $('#apikey').show(); 
+                    $('#apikeylabel').show() 
+                }else{
+                    $('#apikey').hide(); 
+                    $('#apikeylabel').hide(); 
+                }
             }
         }
     } 

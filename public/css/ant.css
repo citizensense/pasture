@@ -76,7 +76,7 @@ legend:first-letter{
 	position:absolute;
     top:0px;
     left:0.5em;
-    width:400px;
+    width:600px;
     height:3em;
     z-index:1000;
 }
@@ -88,7 +88,7 @@ legend:first-letter{
 #header #maintitle a,
 #header #maintitle a:link{
     color:#444;
-    font-size:1em;
+    font-size:0.8em;
     text-decoration:none;
 }
 #mainmenu{
