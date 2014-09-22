@@ -415,12 +415,16 @@ class SpecGatewaySubmission:
         msg =''
         if model.match_keys(expected, submitted) == True:    # We got a Speck Gatweway
             try: 
-                allspeckdata = json.loads(data['postedbody'])
+                print(data.keys)
+                if data['postedbody'] == '{}': 
+                    data['altresponse'] = '{"result":"OK", "msg":"We have been sent empty data"}'
+                    return data
+                allspeckdata = data['postedbody']
                 speckdata = allspeckdata['data']
                 speckchannels = allspeckdata['channel_names']
             except: 
                 speckdata = []
-                msg = ' But data could be invalid'
+                msg = ' But data could be invalid from Speck Gateway'
         elif model.match_keys(expected2, submitted) == True: # General body track post
             try:
                 speckdata =  json.loads(data['submitted']['data'])
