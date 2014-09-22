@@ -280,6 +280,7 @@ jQuery(document).ready(function(){
             var content = '<div id="toolinfo"><span>'+title+'</span>';
             content += '<strong>Last updated:</strong><br />'+updated;
             content += '</div><ul>'
+            console.log(latest)
             // TODO: Prep json properly on server side
             $.each(latest, function( i, v ) {  
                 if(i=="raw" || i=="concentration" || i=="humidity"){
@@ -355,8 +356,8 @@ jQuery(document).ready(function(){
                     }
                 });
                 content += '<hr /><strong>The data</strong><br />'+data['data']
-                content += '<hr /><a href="/api/edit/'+nid+'" class="pure-button pure-button-primary">edit</a>'
-                content += '<a id=\'node'+nid+'\' href="#" class="pure-button pure-button-primary">delete</a>'
+                //content += '<hr /><a href="/api/edit/'+nid+'" class="pure-button pure-button-primary">edit</a>'
+                //content += '<a id=\'node'+nid+'\' href="#" class="pure-button pure-button-primary">delete</a>'
                 content += '<div id="nodemsg"></div>';
                 // Display data in the big message box
                 $('#nodedata .content').html(content);
@@ -399,10 +400,10 @@ jQuery(document).ready(function(){
         $('#sessionid').val(sessionid); 
         if(sessionid == ''){
             $('.sessionvis').css('display', 'block');
-            $('#loggedin').html(' <a href="#">[LOGIN]</a>');  
+            //$('#loggedin').html(' <a href="#">[LOGIN]</a>');  
         }else{
             $('.sessionvis').css('display', 'none');
-            $('#loggedin').html(' <a href="#">[LOGOUT "'+username+'"]</a>');      
+            //$('#loggedin').html(' <a href="#">[LOGOUT "'+username+'"]</a>');      
         }
     }
 

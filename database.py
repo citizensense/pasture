@@ -154,7 +154,8 @@ class Database:
             return False
  
     # Search for a value and return the spec
-    def searchfor(self, intable, returnfields, searchfor):
+    # TODO: Clean up this to return one or many
+    def searchfor(self, intable, returnfields, searchfor, sql='', returnrows='one'):
         self.msg = '\n=========database searchfor()======'
         try:
             cursor = self.db.cursor() 
@@ -167,11 +168,18 @@ class Database:
                 values.append(searchfor[key])
                 sp = ' AND '
             qry = 'SELECT {0} FROM {1} WHERE {2}'.format(fields, intable, search)
+            qry += ' '+sql
             # Make thu query human readable for debugging
             self.msg += '\n'+qry
             cursor.execute(qry, (values) )
-            row = cursor.fetchone()  
-            return row
+            if returnrows == 'one':
+                row = cursor.fetchone()  
+                return row
+            else:
+                rows = []
+                for row in cursor:
+                    rows.append(row)
+                return rows
         except Exception as e:
             self.msg += '\n'+str(e)
             return False

@@ -131,7 +131,8 @@ class Model:
     # VIEW AN INDIVIDUAL NODE
     # TODO: This is inefficiant - no need to convert in/out of json...
     def view_node(self, nid):
-        fields = ['datatype', 'apikey', 'title', 'description', 'lat', 'lon', 'createdhuman', 'updated', 
+        fields = ['datatype', 'apikey', 'title', 'description', 'lat', 'lon', 
+                  'createdhuman', 'updated', 
                   'latest', 'nid', 'createdby']
         jsonstr = self.db.readasjson('nodes', fields, [int(nid)])  
         print(self.db.msg)
@@ -139,7 +140,15 @@ class Model:
             print('SINGLE NODE: json response:\n'+jsonstr)    
             data = json.loads(jsonstr)
             node = data[0]
-            node['data'] = '{"header":[a,b,c], "values":[ [1,2,3], [1,2,3], [9,6,10] ]}'
+            # Now bring back some actual data!
+            searchfor = {'nid':nid}
+            intable = 'csvs'
+            returnfields = ['created', 'csv','header']
+            sql = 'ORDER BY created DESC LIMIT 5' 
+            rows = self.db.searchfor(intable, returnfields, searchfor, sql, 'many')
+            print(self.db.msg) 
+            print(rows)
+            node['data'] = json.dumps(rows)
             return json.dumps(node)
         else: return '{}'
 
