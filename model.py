@@ -390,6 +390,7 @@ class UploadformSubmission:
     
 #================== SPEC GATEWAY APPLICATION ================================#
 # Test a fack Speck Gateway post with the following curl command in the terminal:
+#    curl -H "Content-Type:application/json" http://localhost:8787/api/bodytrack/jupload?dev_nickname=Speck -d @etc/speck_data.json
 #    curl -i -u f:f http://localhost:8787/api/bodytrack/upload -d dev_nickname=test -d channel_names='["a","b"]' -d data='[[1332754616,1,10], [1332754617,-1,20]]'
 #============================================================================#
 class SpecGatewaySubmission:
@@ -401,7 +402,6 @@ class SpecGatewaySubmission:
         expected = ['dev_nickname']
         expected2 = ["dev_nickname", "data", "channel_names"]
         submitted = data['submitted'].keys()
-        
         # Check if we recognise this post
         msg =''
         if model.match_keys(expected, submitted) == True:    # We got a Speck Gatweway
@@ -413,7 +413,6 @@ class SpecGatewaySubmission:
                 speckdata = []
                 msg = ' But data could be invalid'
         elif model.match_keys(expected2, submitted) == True: # General body track post
-            print('Found body track post')
             try:
                 speckdata =  json.loads(data['submitted']['data'])
                 speckchannels = json.loads(data['submitted']['channel_names'])
@@ -424,7 +423,7 @@ class SpecGatewaySubmission:
                 speckdata = []
         else: # Not recognised so reject
             return False
-        
+
         # If we have empy JSON all is ok but there is nothing to do
         if len(speckdata) == 0:
             data['altresponse'] = '{"result":"OK", "msg":"We have connected.'+msg+'"}'
@@ -451,43 +450,53 @@ class SpecGatewaySubmission:
         headerlist = ['timestamp']+speckchannels
         csvheader = ','.join(headerlist)
         # Create the csv value strings
-        csvlist = []
-        array = []
-        timestamp  = int(time.time())  
+        csvstrlist = []
+        csvvaluelist = []
+        timestamp  = int(time.time()) 
         for x in speckdata:
             csvline =  ','.join(map(str, x))
-            array.append( csvline )
-            csv = '\n'.join(array)
-            csvlist.append([nid, timestamp, csvheader, csvline])
+            csvstrlist.append(csvline)
+            csvvaluelist.append([nid, timestamp, csvheader, csvline])
+        csvstring = '\n'.join(csvstrlist)
         # Now try and save the data to file
-        try: cherrypy.config['datalogger'].log('data/'+nid+'/data.csv', csvheader, csv)
+        print('\n=======String to save')
+        print(csvheader+'\n'+csvstring)
+        try:
+            directory = 'data/'+str(nid)
+            # Check we have a folder
+            cherrypy.config['datalogger'].createDir(directory)
+            # Now save the file
+            cherrypy.config['datalogger'].log(directory+'/data.csv', csvheader, csvstring)
         except Exception as e: 
             data['altresponse'] = '{"result":"KO","message":"Unable to save speck data to file"}'
             return data
         # And create a 'latest' summary for the display
         latest = OrderedDict()
-        timestamp = speckdata[-1][0]
-        humantime = datetime.datetime.fromtimestamp(timestamp).strftime('%d %b %Y %I:%M%p')
-        values = [humantime]+speckdata[-1]
-        # Convert the last value to key value pairs
+        values = speckdata[-1]
+        # Convert the last value to key value pairs and convert to nice names
         i = 0
-        for key in +speckchannels: 
-            if key == 'raw_particles' : key = 'raw' # convert to nice nam
+        for key in headerlist: 
+            if key == 'raw_particles' : key = 'raw'
             if key == 'particle_concentration' : key = 'concentration'
             latest[key] = values[i]
             i += 1
         lateststr = json.dumps(latest)
+
         # Now save the latest data
-        model.db.update_node(nid, {'latest':lateststr})
+        print('NID:'+str(nid))
+        model.db.update('nodes', 'nid', nid, {'latest':lateststr, 'updated':int(time.time())})
+        print(model.db.msg)
+        
         # And save a copy of the csv in the database for safety
         newcsvs = OrderedDict([
             ('fieldnames',['nid', 'created', 'header', 'csv']),
-            ('values',[csvlist])  
+            ('values', csvvaluelist)  
         ]) 
-        resp = self.db.create('csvs', newnode)
-        print(self.db.msg)
+        resp = model.db.create('csvs', newcsvs)
+        print(model.db.msg)
+        print(newcsvs)
         data['altresponse'] = '{"result":"OK","message":"Upload successful!","payload":{"successful_records":"1","failed_records":"0"}}'
-
+        return data
 
 #================== Citizen Sense Kit submission ============================#
 class CitizenSenseKitSubmission:
@@ -503,7 +512,7 @@ class CitizenSenseKitSubmission:
         for key in data['submitted'].keys():
             if key not in expectedkeys: 
                 return False
-        # Now check we have a node to post to
+        A# Now check we have a node to post to
         msg = 'A Citizen Sense Kit submission'
         #if exists(uid):
         # And save the new data to file

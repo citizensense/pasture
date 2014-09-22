@@ -1,23 +1,37 @@
 #!/usr/bin/python3
 import os, subprocess, sys, time
 
-# Class to log data capturted by the kit
+# Class to save cvs data to file
 class LogCsvData:
 
     # Accept a full filepath, header and csv: "timestamp, val1", "1234, 77.5"
-    def log(self, datafilepath, header, csv):
+    def log(self, filepath, header, csv):
         try:
             # Lets check if the datafile exists
-            if not os.path.isfile(datafilepath):
+            if not os.path.isfile(filepath):
                 # Create the file
-                self.savestring(datafilepath, header)
+                print('Create the file: '+filepath)
+                self.savestring(filepath, header)
             csv = csv.strip()
-            if len(csv) != 0: 
-                self.savestring(datafilepath, csv)
+            if len(csv) != 0:
+                print('Save the string: '+filepath)
+                self.savestring(filepath, csv)
             return True
-        except:
+        except Exception as e:
+            print('\n ==== log() exception:\n'+str(e))
             return False
-
+    
+    # Create a directory at the specified path
+    def createDir(self, path) :
+        # Check the new name doesn't already exist
+        if not os.path.exists(path):
+            os.makedirs(path)
+            print('created:'+path)
+            return True
+        else :
+            print('path already exists: '+path)
+            return False
+ 
     # Save a string to a file
     def savestring(self, filepath, string, writeorappend="a"):
         with open(filepath, writeorappend) as text_file:
@@ -43,6 +57,7 @@ class LogCsvData:
         return success
 
 # Example showing how to to use this class
+# TODO: Fix test example
 if __name__ == "__main__":
     # Setup elements for this example
     import random
@@ -55,9 +70,9 @@ if __name__ == "__main__":
     val3 = 'aaa'
     csv = time+','+val1+','+val2+','+val3
     # Log the data
-    if save.log('data.csv', header, csv):
+    if save.log('data/data.csv', header, csv):
         print('Saved to data.csv')
     # Save the latest
-    if save.savelatest('latest.csv', header, csv):
+    if save.savelatest('data/latest.csv', header, csv):
         print('Saved to latest.json')
 
