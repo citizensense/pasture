@@ -415,8 +415,6 @@ class SpecGatewaySubmission:
         msg =''
         if model.match_keys(expected, submitted) == True:    # We got a Speck Gatweway
             try: 
-                print(data)
-                print(data['body'])
                 if data['body'] == '{}': 
                     data['altresponse'] = '{"result":"OK"}'
                     return data
