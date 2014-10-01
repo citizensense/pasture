@@ -156,38 +156,41 @@ class Model:
                   'latest', 'nid', 'createdby']
         jsonstr = self.db.readasjson('nodes', fields, [int(nid)])  
         if jsonstr: 
-            data = json.loads(jsonstr)
-            node = data[0]
-            keyarr = node['latest']['csvheader'].split(',')
-            # Now bring back some actual data!
-            searchfor = {'nid':nid}
-            intable = 'csvs'
-            returnfields = ['created', 'csv']
-            sql = 'ORDER BY created DESC LIMIT 40' 
-            rows = self.db.searchfor(intable, returnfields, searchfor, sql, 'many')
-            # Now format the output
-            header = '<table><tr><th>'
-            header += '</th><th>'.join(keyarr)+'</th></tr>\n\n\n'
-            rowstr = ''
-            for row in rows:
-                vals = row[1].split(',')
-                line = '<tr><td>'
-                line += '</td><td>'.join(vals)
-                line += '</td></tr>'
-                rowstr += line
-            table = header+rowstr+'</table>'
-            # Some css
-            css = """
-                    th, td{
-                        font-size:80%;
-                        vertical-align: text-top;
-                        font-family:"Lucida Console", Monaco, monospace;
-                        overflow:hidden;
-                        border:1px solid #ccc;
-                        white-space: nowrap;   
-                    }
-                    """
-            return '<html><head><style>{}</style></head><body><pre>{}</pre></body></html>'.format(css, table)
+            try:
+                data = json.loads(jsonstr)
+                node = data[0]
+                keyarr = node['latest']['csvheader'].split(',')
+                # Now bring back some actual data!
+                searchfor = {'nid':nid}
+                intable = 'csvs'
+                returnfields = ['created', 'csv']
+                sql = 'ORDER BY created DESC LIMIT 40' 
+                rows = self.db.searchfor(intable, returnfields, searchfor, sql, 'many')
+                # Now format the output
+                header = '<table><tr><th>'
+                header += '</th><th>'.join(keyarr)+'</th></tr>\n\n\n'
+                rowstr = ''
+                for row in rows:
+                    vals = row[1].split(',')
+                    line = '<tr><td>'
+                    line += '</td><td>'.join(vals)
+                    line += '</td></tr>'
+                    rowstr += line
+                table = header+rowstr+'</table>'
+                # Some css
+                css = """
+                        th, td{
+                            font-size:80%;
+                            vertical-align: text-top;
+                            font-family:"Lucida Console", Monaco, monospace;
+                            overflow:hidden;
+                            border:1px solid #ccc;
+                            white-space: nowrap;   
+                        }
+                        """
+                return '<html><head><style>{}</style></head><body><pre>{}</pre></body></html>'.format(css, table)
+            except Exception as e:
+                return str(e)
         else: 
             return '{}'
 
