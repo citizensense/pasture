@@ -275,16 +275,28 @@ jQuery(document).ready(function(){
             var title = val['title'];
             var datatype = val['datatype']; 
             var latest = val['latest'];
-            var created = val['created']
-            var updated = val['updated']
-            var content = '<div id="toolinfo"><span>'+title+'</span>';
-            content += '<strong>Last updated:</strong><br />'+updated;
-            content += '</div><ul>'
-            console.log(latest)
+            var created = val['created'];
+            var updated = latest['humandate'];
+            var content = '<ul>';
+            console.log(latest);
             // TODO: Prep json properly on server side
+            content += '<li><strong>Title</strong> <span>'+title+'</span></li>';
+            content += '<li><strong>Updated</strong> <span>'+updated+'</span></li>';
             $.each(latest, function( i, v ) {  
-                if(i=="raw" || i=="concentration" || i=="humidity"){
-                    content += '<li><strong>'+i+'</strong> <span>'+v+'</span></li>';
+                if(datatype=='speck'){
+                    if(i=="raw" || i=="concentration" || i=="humidity"){
+                        content += '<li><strong>'+i+'</strong> <span>'+v+'</span></li>';
+                    }
+                }else{
+                    exclude = ['CPU', 'lat', 'lon', 'network', "Disk", "Load", 
+                               "timestamp", "humandate", 'updated', 'winddir'
+                    ];
+                    if( jQuery.inArray( i, exclude ) === -1){
+                        v = parseFloat(v);
+                        console.log(i+':'+v)
+                        v = v.toFixed(2)
+                        content += '<li><strong>'+i+'</strong> <span>'+v+'</span></li>'; 
+                    }
                 }
             });
             var latest = content+'</ul>';
@@ -355,7 +367,8 @@ jQuery(document).ready(function(){
                         content += '<li><b>'+index+'</b>:'+value+'</li>';
                     }
                 });
-                content += '<hr /><strong>The data</strong><br />'+data['data']
+                content += '<hr /><strong>The data</strong> [<a href="/api/viewhtml/'+nid+'">view table</a>]<br />'
+                content += data['data']
                 //content += '<hr /><a href="/api/edit/'+nid+'" class="pure-button pure-button-primary">edit</a>'
                 //content += '<a id=\'node'+nid+'\' href="#" class="pure-button pure-button-primary">delete</a>'
                 content += '<div id="nodemsg"></div>';

@@ -38,6 +38,10 @@ class WebService(object):
         # View a single node
         elif path0=='view' and len(path1)>0:
             return model.view_node(path1)
+        # View single node as an html table
+        elif path0=='viewhtml' and len(path1)>0:
+            cherrypy.response.headers['Content-Type']= 'text/html'
+            return model.view_node_html(path1)
         return "0:"+path0+' 1:'+path1+' 2:'+path2
 
     # Response to a DELETE request

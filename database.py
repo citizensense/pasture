@@ -157,6 +157,7 @@ class Database:
     # TODO: Clean up this to return one or many
     def searchfor(self, intable, returnfields, searchfor, sql='', returnrows='one'):
         self.msg = '\n=========database searchfor()======'
+        self.msg += '\n'+str(searchfor)
         try:
             cursor = self.db.cursor() 
             fields = ','.join(returnfields)

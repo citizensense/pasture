@@ -39,7 +39,7 @@ a:hover{
     background:#000;
     color:#999;
     padding:5px;
-    height:6em;
+    height:7em;
 }
 #tooltip ul{
     margin:0px;
@@ -51,13 +51,13 @@ a:hover{
     list-style-type:none;
     padding:0px;
     float:left;
-    width:200px;
+    width:140px;
     overflow:hidden;
     text-align:center;
 } 
 #tooltip span{
     display:block;
-    font-size:170%;
+    font-size:140%;
     color:#ccc;
 }  
 #tooltip #toolinfo{

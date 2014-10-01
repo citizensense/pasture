@@ -135,9 +135,7 @@ class Model:
                   'createdhuman', 'updated', 
                   'latest', 'nid', 'createdby']
         jsonstr = self.db.readasjson('nodes', fields, [int(nid)])  
-        print(self.db.msg)
-        if jsonstr: 
-            print('SINGLE NODE: json response:\n'+jsonstr)    
+        if jsonstr:     
             data = json.loads(jsonstr)
             node = data[0]
             # Now bring back some actual data!
@@ -146,11 +144,53 @@ class Model:
             returnfields = ['created', 'csv','header']
             sql = 'ORDER BY created DESC LIMIT 5' 
             rows = self.db.searchfor(intable, returnfields, searchfor, sql, 'many')
-            print(self.db.msg) 
-            print(rows)
             node['data'] = json.dumps(rows)
             return json.dumps(node)
-        else: return '{}'
+        else: 
+            return '{}'
+    
+    # VIEW AN INDIVIDUAL as an HTML table
+    def view_node_html(self, nid):
+        fields = ['datatype', 'apikey', 'title', 'description', 'lat', 'lon', 
+                  'createdhuman', 'updated', 
+                  'latest', 'nid', 'createdby']
+        jsonstr = self.db.readasjson('nodes', fields, [int(nid)])  
+        if jsonstr: 
+            data = json.loads(jsonstr)
+            node = data[0]
+            keyarr = node['latest']['csvheader'].split(',')
+            # Now bring back some actual data!
+            searchfor = {'nid':nid}
+            intable = 'csvs'
+            returnfields = ['created', 'csv']
+            sql = 'ORDER BY created DESC LIMIT 40' 
+            rows = self.db.searchfor(intable, returnfields, searchfor, sql, 'many')
+            # Now format the output
+            header = '<table><tr><th>'
+            header += '</th><th>'.join(keyarr)+'</th></tr>\n\n\n'
+            rowstr = ''
+            for row in rows:
+                vals = row[1].split(',')
+                line = '<tr><td>'
+                line += '</td><td>'.join(vals)
+                line += '</td></tr>'
+                rowstr += line
+            table = header+rowstr+'</table>'
+            # Some css
+            css = """
+                    th, td{
+                        font-size:80%;
+                        vertical-align: text-top;
+                        font-family:"Lucida Console", Monaco, monospace;
+                        overflow:hidden;
+                        border:1px solid #ccc;
+                        white-space: nowrap;   
+                    }
+                    """
+            return '<html><head><style>{}</style></head><body><pre>{}</pre></body></html>'.format(css, table)
+        else: 
+            return '{}'
+
 
     # UPDATE SPECIFIED FIELDS OF A NODE
     def update_node(self, nid, fieldsnvalues):
@@ -208,14 +248,14 @@ class Model:
             # Ok, no sessionid, so lets check if a username/password has been set
             elif len(uname.strip()) > 0 and len(pwd.strip()) > 0:
                 msg += "\nNo session id But recieves password + username"
-                if uname not in cherrypy.config['users']:
+                if uname not in cherrypy.config['CONFIG']['users']:
                     msg += "\nUsername not recognised: "+uname
                 else:
                     msg += "\nUsername has been recognised:"+uname
-                    uid = cherrypy.config['users'][uname]['uid']
+                    uid = cherrypy.config['CONFIG']['users'][uname]['uid']
                     username = uname
-                    password = cherrypy.config['users'][uname]['password']
-                    permissions = cherrypy.config['users'][uname]['permissions']  
+                    password = cherrypy.config['CONFIG']['users'][uname]['password']
+                    permissions = cherrypy.config['CONFIG']['users'][uname]['permissions']  
                     if pwd != password:
                         msg += "\nPassword not recognised: "+pwd
                     else:
@@ -470,6 +510,7 @@ class SpecGatewaySubmission:
             csvstrlist.append(csvline)
             csvvaluelist.append([nid, timestamp, csvheader, csvline])
         csvstring = '\n'.join(csvstrlist)
+        
         # Now try and save the data to file
         print('\n=======String to save')
         print(csvheader+'\n'+csvstring)
@@ -482,10 +523,10 @@ class SpecGatewaySubmission:
         except Exception as e: 
             data['altresponse'] = '{"result":"KO","message":"Unable to save speck data to file"}'
             return data
-        # And create a 'latest' summary for the display
+        
+        # And create a 'latest' summary for the display in a nice key:value json string
         latest = OrderedDict()
         values = speckdata[-1]
-        # Convert the last value to key value pairs and convert to nice names
         i = 0
         for key in headerlist: 
             if key == 'raw_particles' : key = 'raw'
@@ -515,19 +556,96 @@ class CitizenSenseKitSubmission:
 
     # Check if submission is recognised, if it is, return structured data
     def checksubmission(self, model, data):
-        return False
-        msg = ''
-        self.data = data
-        # List of field names we are expecting and specify:
-        # TODO: Also count the number of fields
-        expectedkeys = ['uid', 'deviceserial', 'data']
-        for key in data['submitted'].keys():
-            if key not in expectedkeys: 
-                return False
-        A# Now check we have a node to post to
-        msg = 'A Citizen Sense Kit submission'
-        #if exists(uid):
-        # And save the new data to file
-        self.data['success']['msg'] = msg
-        return self.data
+        
+        # Check if we recognise this post
+        expected = ["serial", "name", "jsonkeys", "jsonvalues", "MAC"]
+        submitted = data['submitted'].keys()
+        msg =''
+        if model.match_keys(expected, submitted) is not True:    # We got a csk submission
+            return False
+        
+        # Check if this is a know MAC address
+        if data['submitted']['MAC'] not in cherrypy.config['CONFIG']['MACS']:
+            data['altresponse'] = '{"success":"KO", "errors":[{"MAC":"MAC not recognised"}]}'
+            return data
+
+        # Check if there is a node to save this data to
+        apikey = data['submitted']['serial'] # The raspberry pi serial number
+        searchfor = {'apikey':apikey}
+        intable = 'nodes'
+        returnfields = ['nid', 'createdby', 'datatype']
+        node = model.db.searchfor(intable, returnfields, searchfor)
+        #print(model.db.msg)
+        #print('Searched for: '+apikey)
+        #print(node)
+        if node is None:
+            data['altresponse'] = '{"success":"KO", "errors":[{"serial":"This serial number is not recognised"}]}'
+            return data
+        else:
+            nid = node[0]
+        
+        # OK lets parse the response
+        try:
+            # Create container for 'latest' data for display in a nice 'key:value' display
+            latest = OrderedDict()
+            latest['csvheader'] = data['submitted']['jsonkeys'].replace('[', '')
+            latest['csvheader'] = latest['csvheader'].replace(']', '')
+            latest['csvheader'] = latest['csvheader'].replace('"', '')
+            keys = json.loads(data['submitted']['jsonkeys'])
+            for key in keys:
+                latest[key] = ''
+            newvalues = []
+            # Fomat the data ready to save
+            rows = json.loads(data['submitted']['jsonvalues'] )
+            created  = int(time.time()) 
+            newvalues = []
+            for row in rows:
+                i = 0
+                newvalues.append([nid, created, row])
+                values = row.split(',')
+                for key in keys:
+                    if values[i] != '': latest[key] = values[i]
+                    i += 1
+                lateststr = json.dumps(latest)
+        except Exception as e:
+            data['altresponse'] = '{"success":"KO", "errors":[{"json":"Posted values are not in a recognised json format: {0}"}]}'.format(str(e))
+            return data
+        
+        # Now update the node and save the 'latest' data
+        success = model.db.update('nodes', 'nid', nid, {'latest':lateststr, 'updated':int(time.time())})
+        if success is not True:
+            data['altresponse'] = '{"success":"KO", "errors":[{"database":"Unable to update node "}]}'
+            return data
+        
+        # And now create a new csv record
+        newcsvs = OrderedDict([
+            ('fieldnames',['nid', 'created', 'csv']),
+            ('values', newvalues)  
+        ]) 
+        resp = model.db.create('csvs', newcsvs)
+        if resp is not None:
+            data['altresponse'] = '{"success":"KO", "errors":[{"database":"Unable to create new csv records in database"}]}'
+            print(model.db.msg)
+            return data
+
+        # Now try and save the data to file
+        csvheader = ','.join(keys)
+        csvvalues = '\n'.join(rows)
+        #print('\n=======String to save')
+        #print(csvheader+'\n'+csvvalues)
+        try:
+            directory = 'data/'+str(nid)
+            # Check we have a folder
+            cherrypy.config['datalogger'].createDir(directory)
+            # Now save the file
+            # TODO: Its wrong to save the header everytime. Create a seperate 'headers' table
+            cherrypy.config['datalogger'].log(directory+'/data.csv', csvheader, csvvalues)
+        except Exception as e: 
+            data['altresponse'] =  '{"success":[{"OK":"Data saved to database but not file"}], "errors":[]}'
+            return data
+        
+        # And save them to the database as well
+        print("SAVE DATA TO nid: "+str(nid))
+        data['altresponse'] = '{"success":"Saved submitted data", "errors":[]}'
+        return data
 

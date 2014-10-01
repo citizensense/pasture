@@ -14,6 +14,7 @@ import config, threading
 # Config
 def get_config():
     # Global config - applies to all application instances
+    CONFIG = config.init()
     cherrypy.config.update({
         'server.socket_host': '0.0.0.0',
         'server.socket_port': 8787,
@@ -24,7 +25,7 @@ def get_config():
         'dbfile':"data/db.sqlite3",
         'filemanager': FileManager(),
         'datalogger': LogCsvData(),
-        'users':config.init(),
+        'CONFIG':CONFIG,
         'session':{},
         'sessionlock':threading.Lock() # TODO: A quick hack
     })
