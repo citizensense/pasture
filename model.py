@@ -154,12 +154,15 @@ class Model:
         fields = ['datatype', 'apikey', 'title', 'description', 'lat', 'lon', 
                   'createdhuman', 'updated', 
                   'latest', 'nid', 'createdby']
-        jsonstr = self.db.readasjson('nodes', fields, [int(nid)])  
-        if jsonstr: 
-            try:
+        try:
+            jsonstr = self.db.readasjson('nodes', fields, [int(nid)])  
+            if jsonstr: 
                 data = json.loads(jsonstr)
                 node = data[0]
                 keyarr = node['latest']['csvheader'].split(',')
+                name = '<h2>...</h2>'
+                if 'name' in node['latest']:
+                    name = '<h2>'+name+'</h2>'
                 # Now bring back some actual data!
                 searchfor = {'nid':nid}
                 intable = 'csvs'
@@ -188,12 +191,11 @@ class Model:
                             white-space: nowrap;   
                         }
                         """
-                return '<html><head><style>{}</style></head><body><pre>{}</pre></body></html>'.format(css, table)
-            except Exception as e:
-                return str(e)
-        else: 
-            return '{}'
-
+                return '<html><head><style>{}</style></head><body>{} {}</body></html>'.format(css, name, table)
+            else: 
+                return '{}'
+        except Exception as e:
+            return 'error: '+str(e)
 
     # UPDATE SPECIFIED FIELDS OF A NODE
     def update_node(self, nid, fieldsnvalues):
@@ -594,6 +596,7 @@ class CitizenSenseKitSubmission:
             latest['csvheader'] = data['submitted']['jsonkeys'].replace('[', '')
             latest['csvheader'] = latest['csvheader'].replace(']', '')
             latest['csvheader'] = latest['csvheader'].replace('"', '')
+            latest['name'] = data['submitted']['name']
             keys = json.loads(data['submitted']['jsonkeys'])
             for key in keys:
                 latest[key] = ''
