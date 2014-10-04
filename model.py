@@ -617,6 +617,10 @@ class CitizenSenseKitSubmission:
             data['altresponse'] = '{"success":"KO", "errors":[{"json":"Posted values are not in a recognised json format: {0}"}]}'.format(str(e))
             return data
         
+        # 
+        print('===========Attempt to save=======')
+        print(data['submitted'])
+
         # Now update the node and save the 'latest' data
         success = model.db.update('nodes', 'nid', nid, {'latest':lateststr, 'updated':int(time.time())})
         if success is not True:
