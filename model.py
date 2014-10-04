@@ -162,7 +162,7 @@ class Model:
                 keyarr = node['latest']['csvheader'].split(',')
                 name = '<h2>...</h2>'
                 if 'name' in node['latest']:
-                    name = '<h2>'+name+'</h2>'
+                    name = '<h2>{} [{}]</h2>'.format(node['title'], node['latest']['name'])
                 # Now bring back some actual data!
                 searchfor = {'nid':nid}
                 intable = 'csvs'
@@ -574,6 +574,9 @@ class CitizenSenseKitSubmission:
             data['altresponse'] = '{"success":"KO", "errors":[{"MAC":"MAC not recognised"}]}'
             return data
 
+        # Save the name to use later
+        name = data['submitted']['name'] # The kit name
+
         # Check if there is a node to save this data to
         apikey = data['submitted']['serial'] # The raspberry pi serial number
         searchfor = {'apikey':apikey}
@@ -614,19 +617,24 @@ class CitizenSenseKitSubmission:
                     i += 1
                 lateststr = json.dumps(latest)
         except Exception as e:
+            print('Failed to read POSTED json: '+str(e))
             data['altresponse'] = '{"success":"KO", "errors":[{"json":"Posted values are not in a recognised json format: {0}"}]}'.format(str(e))
             return data
         
         # 
         print('===========Attempt to save=======')
-        print(data['submitted'])
+        print('Latest')
+        print(json.dumps(latest))
 
         # Now update the node and save the 'latest' data
         success = model.db.update('nodes', 'nid', nid, {'latest':lateststr, 'updated':int(time.time())})
         if success is not True:
+            print('Failed: To save \'latest\' data in node')
             data['altresponse'] = '{"success":"KO", "errors":[{"database":"Unable to update node "}]}'
             return data
-        
+        else:
+            print('Sucess: Saved latest in node:')
+            
         # And now create a new csv record
         newcsvs = OrderedDict([
             ('fieldnames',['nid', 'created', 'csv']),
@@ -634,15 +642,15 @@ class CitizenSenseKitSubmission:
         ]) 
         resp = model.db.create('csvs', newcsvs)
         if resp is not None:
+            print('Failed: To create new csvDBrecord')
             data['altresponse'] = '{"success":"KO", "errors":[{"database":"Unable to create new csv records in database"}]}'
-            print(model.db.msg)
             return data
+        else:
+            print('Sucess: Created new csvDBrecord')
 
         # Now try and save the data to file
         csvheader = ','.join(keys)
         csvvalues = '\n'.join(rows)
-        #print('\n=======String to save')
-        #print(csvheader+'\n'+csvvalues)
         try:
             directory = 'data/'+str(nid)
             # Check we have a folder
@@ -650,12 +658,14 @@ class CitizenSenseKitSubmission:
             # Now save the file
             # TODO: Its wrong to save the header everytime. Create a seperate 'headers' table
             cherrypy.config['datalogger'].log(directory+'/data.csv', csvheader, csvvalues)
+            print('Save to file: Sucess')
         except Exception as e: 
+            print('Couldn\'t save data to file')
             data['altresponse'] =  '{"success":[{"OK":"Data saved to database but not file"}], "errors":[]}'
             return data
         
-        # And save them to the database as well
-        print("SAVE DATA TO nid: "+str(nid))
+        # All done we have complete sucess
+        print("Sucess, we have save new data to DB and file for marker: "+str(nid))
         data['altresponse'] = '{"success":"Saved submitted data", "errors":[]}'
         return data
 

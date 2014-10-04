@@ -10,11 +10,11 @@ class LogCsvData:
             # Lets check if the datafile exists
             if not os.path.isfile(filepath):
                 # Create the file
-                print('Create the file: '+filepath)
+                #print('Create the file: '+filepath)
                 self.savestring(filepath, header)
             csv = csv.strip()
             if len(csv) != 0:
-                print('Save the string: '+filepath)
+                #print('Save the string: '+filepath)
                 self.savestring(filepath, csv)
             return True
         except Exception as e:
@@ -26,10 +26,10 @@ class LogCsvData:
         # Check the new name doesn't already exist
         if not os.path.exists(path):
             os.makedirs(path)
-            print('created:'+path)
+            #print('created:'+path)
             return True
         else :
-            print('path already exists: '+path)
+            #print('path already exists: '+path)
             return False
  
     # Save a string to a file
