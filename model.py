@@ -120,8 +120,9 @@ class Model:
 
     # RETURN A LIST OF ALL NODES WITH TITLE AND GPS
     def view_all(self):
-        fields = ['nid', 'lat', 'lon', 'title', 'datatype', 'latest', 'created', 'updated']
-        jsondisplay = self.db.readasjson('nodes', fields)
+        fields = ['nid', 'lat', 'lon', 'title', 'visible', 'datatype', 'latest', 'created', 'updated']
+        qry = ' WHERE visible=1 '  
+        jsondisplay = self.db.readasjson('nodes', fields, [], qry)
         print(self.db.msg)
         if jsondisplay:
             return jsondisplay
@@ -205,12 +206,18 @@ class Model:
         else: return False
 
     # DELETE A NODE
-    def delete_node(self, response, fid):
-        if cherrypy.config['filemanager'].move_dir('data/'+fid, 'dustbin/'+fid):
-            response['success']['completed'] = 'Moved to the rubbish bin'
+    def delete_node(self, response, nid, sessionid):
+        # Check permissions
+        # Update the database
+        table = 'nodes'
+        idname = 'nid'
+        idval= nid
+        fieldnvalues = {'visible':0}
+        if self.db.update(table, idname, idval, fieldnvalues):
+            response['success']['completed'] = 'Marker has been deleted' 
         else:
-            response['errors']['failed'] = "Failed to move to rubbish bin"
-        #for item in keyvaluepairs:
+            response['errors']['failed'] = 'Error: Failked to delete marker' 
+        print(self.db.msg)
         return response
     
     # MANAGE USER SESSIONS
@@ -328,7 +335,8 @@ class UploadformSubmission:
             'updated':int(time.time()),
             'createdby':None,
             'datatype':'',
-            'submissiondata':'{}'
+            'submissiondata':'{}',
+            'visible':1  
         }
         submitted = data['submitted'].keys()
         if self.model.match_keys(expected, submitted) == False:
@@ -488,7 +496,7 @@ class SpecGatewaySubmission:
         
         # Now lets see if we have a node to upload this data to
         apikey = data['submitted']['dev_nickname'] # The device name/id
-        searchfor = {'apikey':apikey}
+        searchfor = {'apikey':apikey, 'visible':1}
         intable = 'nodes'
         returnfields = ['nid', 'createdby', 'datatype']
         node = model.db.searchfor(intable, returnfields, searchfor)
@@ -579,7 +587,7 @@ class CitizenSenseKitSubmission:
 
         # Check if there is a node to save this data to
         apikey = data['submitted']['serial'] # The raspberry pi serial number
-        searchfor = {'apikey':apikey}
+        searchfor = {'apikey':apikey, 'visible':1}
         intable = 'nodes'
         returnfields = ['nid', 'createdby', 'datatype']
         node = model.db.searchfor(intable, returnfields, searchfor)
@@ -587,7 +595,7 @@ class CitizenSenseKitSubmission:
         #print('Searched for: '+apikey)
         #print(node)
         if node is None:
-            data['altresponse'] = '{"success":"KO", "errors":[{"serial":"This serial number is not recognised"}]}'
+            data['altresponse'] = '{"success":"KO", "errors":[{"serial":"No marker to submit to. Either no serial or not visible"}]}'
             return data
         else:
             nid = node[0]

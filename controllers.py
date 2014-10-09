@@ -46,15 +46,17 @@ class WebService(object):
 
     # Response to a DELETE request
     def DELETE(self, *vpath):
+        model = Model();
         #cherrypy.session.pop('mystring', None)
         path0=path1=''
         pathlen = len(vpath)
         if pathlen >= 1:path0 = vpath[0] 
         if pathlen >= 2:path1 = vpath[1]
+        if pathlen >= 3:sessionid = vpath[2]  
         # Move a folder to the 'dustbin' directory
         response = {"success":{},"errors":{}}
         if path0 == 'deletenode':
-            response = cherrypy.config['model'].delete_node(response, path1)
+            response = model.delete_node(response, path1,  sessionid)
         else:    
             response['errors']['DELETE'] = 'Unrecognised command'
         return json.dumps(response)

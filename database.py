@@ -94,7 +94,7 @@ class Database:
             return False
     
     # Return a json formated list of a select query
-    def readasjson(self, table, fields, nodelist=[]):
+    def readasjson(self, table, fields, nodelist=[], qry=''):
             self.msg = '\n=========database readasjson()======'
         #try:
             cursor = self.db.cursor() 
@@ -104,7 +104,7 @@ class Database:
             # This has the effect of failing if the there is a code insertion event
             if len(nodelist) != 0:
                 where = 'WHERE nid IN ('+','.join(map(str, map(int, nodelist)))+')'
-            qry = 'SELECT {0} FROM {1} {2}'.format(fieldstr, table, where)
+            qry = 'SELECT {0} FROM {1} {2} {3}'.format(fieldstr, table, where, qry)
             self.msg += '\n'+qry 
             cursor.execute(qry)
             arr = [] 
