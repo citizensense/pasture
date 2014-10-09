@@ -46,6 +46,7 @@ class Model:
                 ('nid', 'INTEGER'),                
                 ('created', 'INTEGER'),
                 ('header', 'TEXT'),
+                ('timestamp', 'INTEGER'),
                 ('csv', 'TEXT')
             ]),
             # This isn't created in the database, its just used for internal var storage
@@ -618,8 +619,9 @@ class CitizenSenseKitSubmission:
             newvalues = []
             for row in rows:
                 i = 0
-                newvalues.append([nid, created, row])
                 values = row.split(',')
+                csvtimecode = values[0]
+                newvalues.append([nid, created, row, csvtimecode])
                 for key in keys:
                     if values[i] != '': latest[key] = values[i]
                     i += 1
@@ -645,7 +647,7 @@ class CitizenSenseKitSubmission:
             
         # And now create a new csv record
         newcsvs = OrderedDict([
-            ('fieldnames',['nid', 'created', 'csv']),
+            ('fieldnames',['nid', 'created', 'csv', 'timestamp']),
             ('values', newvalues)  
         ]) 
         resp = model.db.create('csvs', newcsvs)
