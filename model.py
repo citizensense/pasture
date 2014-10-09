@@ -169,7 +169,7 @@ class Model:
                 searchfor = {'nid':nid}
                 intable = 'csvs'
                 returnfields = ['created', 'csv']
-                sql = 'ORDER BY created DESC LIMIT 40' 
+                sql = 'ORDER BY timestamp DESC LIMIT 40' 
                 rows = self.db.searchfor(intable, returnfields, searchfor, sql, 'many')
                 # Now format the output
                 header = '<table><tr><th>'
