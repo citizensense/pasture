@@ -207,22 +207,44 @@ class Model:
         else: return False
 
     # DELETE A NODE
-    def delete_node(self, response, nid, sessionid):
-        # Check permissions
-        # Update the database
-        table = 'nodes'
-        idname = 'nid'
-        idval= nid
-        fieldnvalues = {'visible':0}
-        if self.db.update(table, idname, idval, fieldnvalues):
-            response['success']['completed'] = 'Marker has been deleted' 
+    def delete_node(self, response, nid, user, password):
+        candelete = False
+        # This username/password combination is valid
+        user = self.validuser(user, password)
+        if user == False:
+            response['errors']['failed'] = 'This username/password combination has not been recognised'
+            return response
+        # Check if this user can delete this node
+        if user['permissions'] is 'admin':
+            candelete = True
+        # Check if the user owns the marker
         else:
-            response['errors']['failed'] = 'Error: Failked to delete marker' 
-        print(self.db.msg)
+            searchfor = {'createdby':user['uid'], 'nid':nid}
+            intable = 'nodes'
+            returnfields = ['nid', 'createdby']
+            node = self.db.searchfor(intable, returnfields, searchfor)
+            print(self.db.msg)
+            if node is not None:
+                candelete = True
+            else:
+                response['errors']['failed'] = 'This marker was created by another user. You do not have permission to delete it.'
+                return response
+        # Ok can we now delete please?
+        if candelete:
+            # Update the database
+            table = 'nodes'
+            idname = 'nid'
+            idval= nid
+            fieldnvalues = {'visible':0}
+            if self.db.update(table, idname, idval, fieldnvalues):
+                response['success']['completed'] = 'Marker has been deleted' 
+            else:
+                response['errors']['failed'] = 'Error: Failed to delete marker' 
+            print(self.db.msg)
         return response
     
     # MANAGE USER SESSIONS
-    # TODO: Tidy up! Convolyuted at the moment
+    # TODO: Tidy up!! Very messy at the moment
     # TODO: Cleanup old session ids
     def validuser(self, uname='', pwd='', sid=''):
         msg = "\n==== validuser() ======="

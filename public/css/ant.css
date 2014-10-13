@@ -110,17 +110,17 @@ legend:first-letter{
     position:absolute;
     top:1.5em;
 }
-#information h2{
+#information h2.itab{
     font-size:1.2em;
     color:#ccc;
 }
-#information h2:hover{
+#information h2.itab:hover{
     color:#222;
 }
-#information .tab h2{width:100px;margin-top:-1em;}
-#information .t2 h2{margin-left:100px;}
-#information .t3 h2{margin-left:200px;}
-#information .t4 h2{margin-left:300px;}
+#information .tab h2.itab{width:100px;margin-top:-1em;}
+#information .t2 h2.itab{margin-left:100px;}
+#information .t3 h2.itab{margin-left:200px;}
+#information .t4 h2.itab{margin-left:300px;}
 
 /* MAP */
 #map{
@@ -136,6 +136,21 @@ div.leaflet-left{
 	top:1em;
     left:95%;
 }
+
+/* GENERAL FORM */
+.pure-form-aligned .pure-control-group label{
+    width:100px;
+}
+/* EDIT FORM */
+#editform{  
+    font-size:80%;
+    display:none;
+}
+#editform h2{
+    margin:0px;
+    font-size:100%;
+}
+
 /* UPLOAD FORM */
 #newmarker h2{
     margin:0px;
@@ -167,4 +182,7 @@ label{
     border:1px solid #CC0000;
     background-color:#FFCCCC;
     padding:5px;
+}
+.error{
+    color:#CC0000; 
 }
