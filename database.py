@@ -119,7 +119,6 @@ class Database:
                             val = json.loads(val)
                         except Exception as e:
                             val = json.loads('{}')
-                            self.msg += '\nAll ok though JSON not saved in DB: '+str(e)
                     arr[n][key] = val
                     i += 1
             return json.dumps(arr)

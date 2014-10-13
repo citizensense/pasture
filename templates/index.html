@@ -38,21 +38,21 @@
 <div id="information" class="shadow">
     <div class="inner">
         <div id="nodelist" class="tab t1">
-            <h2>Nodes</h2>
+            <h2 class="itab">Nodes</h2>
             <div class="content">Node list</div>
         </div>
         <div id="nodedata" class="tab t2">
-            <h2>Data</h2>
+            <h2  class="itab">Data</h2>
             <div class="content"></div>
         </div>
         <div id="help" class="tab t3">
-            <h2>Help</h2>
+            <h2 class="itab">Help</h2>
             <div class="content">
             help text
             </div>
         </div>
         <div id="debug" class="tab t4">
-            <h2>Debug</h2>
+            <h2 class="itab">Debug</h2>
             <div class="content">
             </div>
         </div>
@@ -214,7 +214,8 @@ jQuery(document).ready(function(){
         // Build the page
         initmenu();
         setmenu('#debug');
-        generatemap(41.831733866, -75.879818583, 16);
+        map = L.map('map').setView([41.831733866, -75.879818583], 11);
+        generatemap();
         loadnodes();
         // Create the graphs
         //var mygraph = new Graphkit("chart1", 100);  // id, height, data
@@ -359,25 +360,59 @@ jQuery(document).ready(function(){
             processData: false,
             success: function (data) {
                 setsessionidvis();
-                var content = '';
+                var meta = '';
                 console.log(nid);
-                $('#nodedata .content').html('Loaded: '+nid);
+                $('#nodedata .content').html('Loading data...');
                 $.each(data, function( index, value ) {
                     if(index!='data'){
-                        content += '<li><b>'+index+'</b>:'+value+'</li>';
+                        meta += '<li><b>'+index+'</b>:'+value+'</li>';
                     }
                 });
-                mdelete = '<a id="nodedelete'+nid+'" href="#">delete</a>';
-                content += '<hr /><strong>The data</strong> [<a href="/api/viewhtml/'+nid+'">view</a>]&nbsp;&nbsp;['+mdelete+']<br />';
-                content += data['data'];
-                //content += '<hr /><a href="/api/edit/'+nid+'" class="pure-button pure-button-primary">edit</a>'
-                //content += '<a id=\'node'+nid+'\' href="#" class="pure-button pure-button-primary">delete</a>'
-                content += '<div id="nodemsg"></div>';
+                editform = '<div id="editform">'+$('#uploadform').html()+'</div>';
+                links = '<a class="pure-button" id="nodeview" target="_blank" href="/api/viewhtml/'+nid+'">view</a> ';
+                // links += '<a class="pure-button" id="nodeedit"  href="#"'+nid+'">edit</a> ';
+                links += '<a class="pure-button" id="nodedelete" href="#">delete</a> ';
+                line = [];
+                $.each(data['data'], function( index, value ) {
+                    //line = data['data'][index];
+                    //myjson = $.parseJSON(line);
+                });
+                deleteform = ''+
+                    '<form id="deleteform">'+
+                        '<h2>Delete marker</h2>'+
+                        'You can only delete a marker if you were the person who created it'+
+                        '<legend>&nbsp;</legend>'+
+                        '<div class="pure-control-group">'+
+                        '    <label for="username" id="usernamelabel">Username</label>'+
+                        '    <input id="username" class="fullwidth" type="text" name="username" value="" />'+  
+                        '</div>'+
+                        '<div class="pure-control-group">'+
+                        '    <label for="password" id="passwordlabel">Password</label>'+
+                        '    <input id="password" class="fullwidth" type="text" name="password" value="" />'+  
+                        '</div>'+
+                        '<button id="deletenid" class="pure-button pure-button-primary">Delete</button>'+
+                        '</fieldset>'+
+                        '<div id="deletemsg"></div>'+
+                    '</form>';
+                content = links+'<div id="forms" class="pure-form  pure-form-aligned"></div>'+meta;
                 // Display data in the big message box
                 $('#nodedata .content').html(content);
-                // Setup the edit and delete buttons
-                $("#nodedelete"+nid).click(function(){
-                    delete_node(nid);
+                    // Setup the edit button
+                $("#nodeedit").click(function(){
+                    $('#forms').html(editform);       
+                }).hover(function() {
+                    $(this).css('cursor','pointer');
+                });
+                // Setup the delete button
+                $("#nodedelete").click(function(){
+                    $('#forms').html(deleteform);
+                    $('#deleteform').submit(function(event){  
+                        event.preventDefault(); 
+                        var user = $('#deleteform #username').val()
+                        var pass = $('#deleteform #password').val()
+                        var formData = {'username':user, 'password':pass}
+                        delete_node(nid, formData);
+                    });
                 }).hover(function() {
                     $(this).css('cursor','pointer');
                 });
@@ -387,27 +422,54 @@ jQuery(document).ready(function(){
             }
         });
     }
+    
+    // CREATE MAP LINE 
+    function drawline(){
+        // Draw a line on the map
+        //var polyline = L.polyline([
+        //    [41.83358, 174.796],
+        //    [41.83644,-75.86557],
+        //    [41.8312,-75.86506]
+        //]).addTo(map);
+    }
 
     // DELETE NODE
-    function delete_node(nid){
+    function delete_node(nid, formData){
         $.ajax({
-            url: '/api/deletenode/'+nid+'/'+sessionid,
+            url: '/api/deletenode/'+nid+'/'+formData['username']+'/'+formData['password'],
             type: 'DELETE',
             dataType: 'json',
+            data: formData,
             async: false,
             cache: false,
             contentType: false,
             processData: false,
             success: function (data) {
                 setsessionidvis();
-                debug(data['msg']);
-                map.removeLayer(nodes[nid]);
+                debug(data['errors']);
+                var len = $.map(data['errors'], function(n, i) { return i; }).length;
+                if(len<=0 ){
+                    map.removeLayer(nodes[nid]);
+                }
+                $('#deletemsg').html(readmsg(data)); 
             },
             error: function(e){
-                alert(e)
                 debug('Bad JSON response: Unable to delete node');
+                $('#deletemsg').html('<span style="color:#FF0000;">Error: Unable to delete marker</span>');
             }
         });
+    }
+
+    function readmsg(data){
+        txt = '<ul>';
+        $.each(data['success'], function( index, value ) {     
+            txt += '<li><strong>'+index+':</strong> '+value+'</li>';
+        });
+        $.each(data['errors'], function( index, value ) {     
+            txt += '<li class="error"><strong>'+index+':</strong> '+value+'</li>';
+        });
+        txt += '</ul>';
+        return txt
     }
     
     // SET VISIBILITY AND CONTENT OF SESSION FIELDS
@@ -424,8 +486,8 @@ jQuery(document).ready(function(){
 
     // SUBMIT UPLOAD FORM
     function ajaxsubmission(formid){
-            $(formid+' .errors').css('display', 'none'); 
-            $(formid).submit(function(event){
+        $(formid+' .errors').css('display', 'none'); 
+        $(formid).submit(function(event){
             //disable the default form submission
             event.preventDefault();
             //grab all form data  
@@ -484,14 +546,14 @@ jQuery(document).ready(function(){
     }
     
     // GENERATE THE MAP & MAP CONTROLS
-    function generatemap(lat, lon, zoom){ 
+    function generatemap(){ 
         // Setup the base map
-        map = L.map('map').setView([lat, lon], zoom);
+        // map = L.map('map').setView([lat, lon], zoom);
         var tilelayer = "http://{s}.tiles.mapbox.com/v3/openplans.map-g4j0dszr/{z}/{x}/{y}.png";
         //var tilelayer = "http://{s}.tile.stamen.com/watercolor/{z}/{x}/{y}.jpg"; //L.control.scale().addTo(map);
         L.tileLayer(tilelayer, {
             attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://mapbox.com">Mapbox</a>',
-            maxZoom: 18
+            maxZoom: 20
         }).addTo(map);
         // Define an icon. Images sourced from: http://preloaders.net
         observationMarker = L.icon({
