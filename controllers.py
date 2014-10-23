@@ -8,9 +8,15 @@ ENV = Environment(loader=PackageLoader('controllers', 'templates'))
 #======ROOT=====================================================#
 class Root(object):
     @cherrypy.expose
-    def index(self):
-        template = ENV.get_template('index.html')
-        return template.render()
+    def index(self, *args, **kwargs):
+        try:
+            print('KWARGS========={}============:::: {}'.format(kwargs, kwargs['show']))
+            if kwargs['show'] == "*visible*":
+                template = ENV.get_template('index.html')
+                return template.render()
+        except:
+            pass
+        return "<html><body><h1>Service Temporarily Unavailable</h1>Website is down due to maintenance.</body></html>"
 
 #======/api==POST-GET-PUT-DELETE-BACKEND=============================================#
 class WebService(object):
