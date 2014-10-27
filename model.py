@@ -120,9 +120,9 @@ class Model:
         return data
 
     # RETURN A LIST OF ALL NODES WITH TITLE AND GPS
-    def view_all(self):
+    def view_all(self, qry=''):
         fields = ['nid', 'lat', 'lon', 'title', 'visible', 'datatype', 'latest', 'created', 'updated']
-        qry = ' WHERE visible=1 '  
+        qry = ' WHERE visible=1 {}'.format(qry)  
         jsondisplay = self.db.readasjson('nodes', fields, [], qry)
         print(self.db.msg)
         if jsondisplay:

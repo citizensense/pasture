@@ -9,13 +9,14 @@ ENV = Environment(loader=PackageLoader('controllers', 'templates'))
 class Root(object):
     @cherrypy.expose
     def index(self, *args, **kwargs):
+        template = ENV.get_template('index.html')
         try:
             print('KWARGS========={}============:::: {}'.format(kwargs, kwargs['show']))
             if kwargs['show'] == "*visible*":
-                template = ENV.get_template('index.html')
-                return template.render()
+                return template.render(showhide='/api/viewall')
         except:
             pass
+        return template.render(showhide='/api/viewmarkers')
         return "<html><body><h1>Service Temporarily Unavailable</h1>Website is down due to maintenance.</body></html>"
 
 #======/api==POST-GET-PUT-DELETE-BACKEND=============================================#
@@ -41,6 +42,8 @@ class WebService(object):
         # Return List of all nodes: /api/view 
         if path0=='viewall':
             return model.view_all()
+        if path0=='viewmarkers':
+            return model.view_all(' AND datatype!="frackbox"')
         # View a single node
         elif path0=='view' and len(path1)>0:
             return model.view_node(path1)

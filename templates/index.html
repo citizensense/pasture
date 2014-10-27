@@ -27,12 +27,6 @@
 
 <div id="header">
 	<h1 id="maintitle"><a href="#" class="pure-menu-heading">Frackbox</a><span id='loggedin'></span></h1>
-	<div id="mainmenu" class="pure-menu pure-menu-open pure-menu-horizontal">
-	   	<ul>
-	        <li><a id="uploadbutton" href="#">Upload</a></li> 
-	        <li><a id="loginbutton" href="#">Sign In</a></li>
-	    </ul>
-	</div>
 </div>
 
 <div id="information" class="shadow">
@@ -247,8 +241,9 @@ jQuery(document).ready(function(){
 
     // LOAD NODES
     function loadnodes(){
+        myurl = '{{ showhide }}'
         $.ajax({
-            url: '/api/viewall',
+            url: myurl,
             type: 'GET',
             dataType: 'json',
             async: false,
