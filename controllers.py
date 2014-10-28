@@ -12,7 +12,7 @@ class Root(object):
         template = ENV.get_template('index.html')
         try:
             print('KWARGS========={}============:::: {}'.format(kwargs, kwargs['show']))
-            if kwargs['show'] == "*visible*":
+            if kwargs['show'] == "letmesee*frackbox*":
                 return template.render(showhide='/api/viewall')
         except:
             pass
