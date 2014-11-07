@@ -51,6 +51,17 @@
             border:1px solid #ccc;
             white-space: nowrap;  
         }
+        #charts{
+            width:100%;
+            border:1px solid #555;
+            padding:0px;
+        }
+        .chart{
+            background:#fff;
+        }
+        .chart_block{
+            margin:0px;   
+        }
         .mainoptions{
             display:none;
         }
@@ -60,10 +71,11 @@
 
 <div id="head">{{ var['header'] }}</div>
 <div id="maincontent">
+ <h3>Graph</h3>  
 <div id="charts">
-    <div id="chart1"></div>
+    <div id="chart1" class="chart"></div>
 </div>
-<h3>The Data</h3>
+<h3>Data</h3>
 {{ var['table'] }}
 </div> 
 
@@ -103,12 +115,13 @@
 
 <script>
     // The data
-    data = [
-        {color: '#555', data:[{x:123,y:4.6}, {x:128,y:4.9}], name: 'CO2'},
-        {color: '#000', data:[{x:123,y:4.6}], name: 'NO2'}
-    ]
+    //data = [
+    //    {color: '#555', data:[{x:123,y:4.6}, {x:128,y:4.9}], name: 'CO2'},
+    //    {color: '#000', data:[{x:123,y:4.6}], name: 'NO2'}
+    //]
+    data = {{ var['jsdata'] }}
     // Create the graph
-    var mygraph = new Graphkit("chart1", 150);  // id, height, data
+    var mygraph = new Graphkit("chart1", 250);  // id, height, data
     mygraph.build(data);
     //mygraph.testdata();
 

@@ -91,7 +91,7 @@
 	border:1px solid #333;
 	background:#F3EEEE; 
 	padding-bottom:0px;
-	border-radius: 5px;
+	/* border-radius: 5px; */
 	margin-bottom:12px;
 	overflow:hidden;
 }
@@ -135,7 +135,7 @@ section h6 {
 	height: 9px !important;
 	width: 9px !important;
 	top: -5px !important;
-	border-radius: 6px;
+/*	border-radius: 6px; */
 	outline: none;
 	cursor: pointer;
 }

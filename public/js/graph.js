@@ -10,13 +10,19 @@ var Graphkit = function (){
 		var _chartid = chartid;
 		var _height =  height;
 		var _seriesData = seriesData;
-		var _palette = new Rickshaw.Color.Palette( { scheme: 'classic9' } );
+		var _palette = new Rickshaw.Color.Palette( { scheme: 'colorwheel' } );
 		var _graph;
         var _graphscontainer = "charts"; // should be an elemnt id
 		var _preview;
 
 		// PUBLIC METHODS: this.publicMethod = function() {};
 		this.build = function (data){
+		    // Colorise the lines
+		    for (i = 0; i < data.length; i++) {
+		        console.log( data[i]['color'] )
+                data[i]['color'] = _palette.color(); 
+		    }
+		    // Then build the graph
             buildall(data);
             bindresizeevent();
         }
@@ -106,7 +112,7 @@ var Graphkit = function (){
 				</form> \
 			';
 			var htmlstructure = ' \
-				<div class="chart_block shadow" id="chartblock'+_chartid+'"> \
+				<div class="chart_block" id="chartblock'+_chartid+'"> \
 					'+form+' \
 					<div class="display"> \
 						<div id="'+_chartid+'"></div> \

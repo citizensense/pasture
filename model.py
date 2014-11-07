@@ -163,57 +163,80 @@ class Model:
         ENV = Environment(loader=PackageLoader('controllers', 'templates')) 
         fields = ['datatype', 'apikey', 'title', 'description', 'lat', 'lon', 
                   'createdhuman', 'updated', 'latest', 'nid', 'createdby']
-        timeadj = (-5*60)*60 # Timestamp adjustment for local time
-        count = self.kwargs['count'] if 'count' in self.kwargs else 3000
+        timeadj = int(self.kwargs['timeadj']) if 'timeadj' in self.kwargs else 0 
+        timeadj = (timeadj*60)*60 # Timestamp adjustment for local time
+        count = int(self.kwargs['count']) if 'count' in self.kwargs else 3000
         if count > 3000: count = 3000
-        countfrom = self.kwargs['from'] if 'from' in self.kwargs else 0
+        countfrom = int(self.kwargs['from']) if 'from' in self.kwargs else 0
         # Now make the query
-        try:
-            jsonstr = self.db.readasjson('nodes', fields, [int(nid)])  
-            if jsonstr: 
-                data = json.loads(jsonstr)
-                node = data[0]
-                # TODO This code is a temp fix and should be removed as the submission should be consistant across all datatypes
-                if node['datatype'] == 'speck':
-                    keyarr = ['timestamp', 'raw', 'humidity', 'concentration']
-                else:
-                    keyarr = node['latest']['csvheader'].split(',')
-                if 'name' in node['latest']:
-                    node['title'] = '{} [{}]'.format(node['title'], node['latest']['name'])
-                header = '<h2>{}: Created {}</h2><p>{}</p><hr />'.format(node['title'], node['createdhuman'], node['description'])
-                # Now bring back some actual data!
-                searchfor = {'nid':nid}
-                intable = 'csvs'
-                returnfields = ['created', 'csv']
-                sql = 'ORDER BY timestamp DESC LIMIT {}, {}'.format(countfrom, count) 
-                rows = self.db.searchfor(intable, returnfields, searchfor, sql, 'many')
-                # Now format the output
-                table = '<table id="data"><tr><th>'
-                table += '</th><th>'.join(keyarr)+'</th></tr>\n\n\n'
-                starttime = ''
-                rowdatetime = ''
-                i = 0
-                for row in rows:
-                    vals = row[1].split(',')
-                    # Create a timestamp
-                    timestamp = int(vals[0])+timeadj
-                    rowdatetime = datetime.datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
-                    vals[0] = rowdatetime
-                    if i == 0: starttime = rowdatetime
-                    # Prep the HTML
-                    line = '<tr><td>'
-                    line += '</td><td>'.join(vals)
-                    line += '</td></tr>'
-                    table += line
-                    i += 1
-                table += '</table>'
-                header += '<strong>View</strong> {} Points <strong> From:</strong> {} <strong>To:</strong> {}'.format(count, starttime, rowdatetime)
-                templatevars = {'table':table, 'header':header}
-                return template.render(var=templatevars )  
-            else: 
-                return 'No data'
-        except Exception as e:
-            return 'error: '+str(e)
+        #try:
+        jsonstr = self.db.readasjson('nodes', fields, [int(nid)])  
+        if jsonstr: 
+            data = json.loads(jsonstr)
+            node = data[0]
+            graph = []
+            # TODO This code is a temp fix and should be removed as the submission should be consistant across all datatypes
+            if node['datatype'] == 'speck':
+                keyarr = ['timestamp', 'raw', 'humidity', 'concentration']
+                graph = {   'humidity':'humidity', 
+                            'concentration':'particles'
+                }          
+            else:
+                keyarr = node['latest']['csvheader'].split(',')
+            if 'name' in node['latest']:
+                node['title'] = '{} [{}]'.format(node['title'], node['latest']['name'])
+            header = '<h2>{}: Created {}</h2><p>{}</p><hr />'.format(node['title'], node['createdhuman'], node['description'])
+            # Now bring back some actual data!
+            searchfor = {'nid':nid}
+            intable = 'csvs'
+            returnfields = ['created', 'csv']
+            sql = 'ORDER BY timestamp DESC LIMIT {}, {}'.format(countfrom, count) 
+            rows = self.db.searchfor(intable, returnfields, searchfor, sql, 'many')
+            # And prep vars used to format the output
+            table = '<table id="data"><tr><th>'
+            table += '</th><th>'.join(keyarr)+'</th></tr>\n\n\n'
+            starttime = ''
+            rowdatetime = ''
+            # Make a record of the position of the keys
+            graphpos = {}
+            for item in graph:
+                key = item
+                mapname = graph[item]
+                for position, findkey in enumerate(keyarr):
+                    if findkey == key:
+                        graphpos[key] = {'position':position,'color':"'#000'", 'data':[], 'name':"'{}'".format(mapname)}
+            i = 0
+            # Now loop through the data and generate data and json
+            for row in rows:
+                vals = row[1].split(',')
+                # Create a timestamp
+                timestamp = int(vals[0])+timeadj
+                rowdatetime = datetime.datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+                vals[0] = rowdatetime
+                if i == 0: starttime = rowdatetime
+                # Prep the js
+                for key in graph:
+                    n = graphpos[key]['position']
+                    graphpos[key]['data'].append( {'x':timestamp, 'y':vals[n]} )
+                # Prep the HTML
+                line = '<tr><td>'
+                line += '</td><td>'.join(vals)
+                line += '</td></tr>'
+                table += line
+                i += 1
+            # Now prep the final output
+            data = []
+            for item in graphpos: data.append(graphpos[item])
+            jsondata = json.dumps(data)
+            jsdata = jsondata.replace('"', '') # Javscript formated data
+            table += '</table>'
+            header += '<strong>View</strong> {} Points <strong> From:</strong> {} <strong>To:</strong> {}'.format(count, starttime, rowdatetime)
+            templatevars = {'table':table, 'header':header, 'jsdata':jsdata}
+            return template.render(var=templatevars )  
+        else: 
+            return 'No data'
+        #except Exception as e:
+        #    return 'error: '+str(e)
 
     # UPDATE SPECIFIED FIELDS OF A NODE
     def update_node(self, nid, fieldsnvalues):
