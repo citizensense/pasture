@@ -1,0 +1,118 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Citizen Sense Platform: Marker Data</title>
+    
+    <!-- GENERAL -->
+    <link rel="stylesheet" href="/public/css/pure-min.css">
+
+	<!-- GRAPH -->
+	<link type="text/css" rel="stylesheet" href="/public/css/jquery-ui.css">
+	<link type="text/css" rel="stylesheet" href="/public/css/graph.css">
+	<link type="text/css" rel="stylesheet" href="/public/css/detail.css">
+	<link type="text/css" rel="stylesheet" href="/public/css/legend.css">
+    <link type="text/css" rel="stylesheet" href="/public/css/extensions.css"> 
+
+    <!-- GENERAL -->
+    <link rel="stylesheet" href="/public/css/ant.css" />
+    
+    <!-- OVER-RIDE -->
+    <style>
+        body{
+            background:#E2E2E2;  
+        }
+        #charts{
+            position:static;
+        }
+        #head{
+            background:#ccc;
+            padding:10px;
+            margin-top:-1.5em;
+        }
+        #maincontent{
+            padding:0px 10px;
+            padding-top:10px; 
+        }
+        #data{
+            background:#FCFCFC;
+            margin-right:10px;   
+        }
+        #data td, #data th {
+            border:1px solid #ccc;   
+            padding:1px 5px;
+        }
+        th, td{
+            font-size:80%;
+            vertical-align: text-top;
+            font-family:"Lucida Console", Monaco, monospace;
+            overflow:hidden;
+            border:1px solid #ccc;
+            white-space: nowrap;  
+        }
+        .mainoptions{
+            display:none;
+        }
+    </style>
+</head>
+<body>
+
+<div id="head">{{ var['header'] }}</div>
+<div id="maincontent">
+<div id="charts">
+    <div id="chart1"></div>
+</div>
+<h3>The Data</h3>
+{{ var['table'] }}
+</div> 
+
+<script src="/public/js/jquery.min.js"></script>
+<script>jQuery.noConflict();</script>
+<script src="/public/js/d3.v3.js"></script>
+<script src="/public/js/jquery-ui.min.js"></script>
+<script src="/public/js/Rickshaw.js"></script>
+<script src="/public/js/Rickshaw.Class.js"></script>
+<script src="/public/js/Rickshaw.Compat.ClassList.js"></script>
+<script src="/public/js/Rickshaw.Graph.js"></script>
+<script src="/public/js/Rickshaw.Graph.Renderer.js"></script>
+<script src="/public/js/Rickshaw.Graph.Renderer.Area.js"></script>
+<script src="/public/js/Rickshaw.Graph.Renderer.Line.js"></script>
+<script src="/public/js/Rickshaw.Graph.Renderer.Bar.js"></script>
+<script src="/public/js/Rickshaw.Graph.Renderer.ScatterPlot.js"></script>
+<script src="/public/js/Rickshaw.Graph.Renderer.Stack.js"></script>
+<script src="/public/js/Rickshaw.Graph.RangeSlider.js"></script>
+<script src="/public/js/Rickshaw.Graph.RangeSlider.Preview.js"></script>
+<script src="/public/js/Rickshaw.Graph.HoverDetail.js"></script>
+<script src="/public/js/Rickshaw.Graph.Annotate.js"></script>
+<script src="/public/js/Rickshaw.Graph.Legend.js"></script>
+<script src="/public/js/Rickshaw.Graph.Axis.Time.js"></script>
+<script src="/public/js/Rickshaw.Graph.Behavior.Series.Toggle.js"></script>
+<script src="/public/js/Rickshaw.Graph.Behavior.Series.Order.js"></script>
+<script src="/public/js/Rickshaw.Graph.Behavior.Series.Highlight.js"></script>
+<script src="/public/js/Rickshaw.Graph.Smoother.js"></script>
+<script src="/public/js/Rickshaw.Fixtures.Time.js"></script>
+<script src="/public/js/Rickshaw.Fixtures.Time.Local.js"></script>
+<script src="/public/js/Rickshaw.Fixtures.Number.js"></script>
+<script src="/public/js/Rickshaw.Fixtures.RandomData.js"></script>
+<script src="/public/js/Rickshaw.Fixtures.Color.js"></script>
+<script src="/public/js/Rickshaw.Color.Palette.js"></script>
+<script src="/public/js/Rickshaw.Graph.Axis.Y.js"></script>
+<script src="/public/js/extensions.js"></script>
+<script src="/public/js/graph.js"></script>
+
+<script>
+    // The data
+    data = [
+        {color: '#555', data:[{x:123,y:4.6}, {x:128,y:4.9}], name: 'CO2'},
+        {color: '#000', data:[{x:123,y:4.6}], name: 'NO2'}
+    ]
+    // Create the graph
+    var mygraph = new Graphkit("chart1", 150);  // id, height, data
+    mygraph.build(data);
+    //mygraph.testdata();
+
+</script>
+
+</html>
+</body>

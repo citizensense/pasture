@@ -31,6 +31,7 @@ class WebService(object):
     @cherrypy.tools.accept(media='text/plain')
     def GET(self, *vpath, **kwargs):
         model = Model();
+        model.kwargs = kwargs
         path0=path1=path2=''
         pathlen = len(vpath)
         if pathlen >= 1:

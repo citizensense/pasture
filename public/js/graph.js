@@ -16,22 +16,37 @@ var Graphkit = function (){
 		var _preview;
 
 		// PUBLIC METHODS: this.publicMethod = function() {};
-		this.testdata = function (){
-			var datalen = 300
+		this.build = function (data){
+            buildall(data);
+            bindresizeevent();
+        }
+        
+        this.testdata = function (){
+			var datalen = 10
 			_seriesData = [ [], [], [], [], [], [], [], [], [] ];
 			var random = new Rickshaw.Fixtures.RandomData(datalen); 
 	 		for (var i = 0; i < datalen; i++) {
      			random.addData(_seriesData);
 			}
-			console.log(_seriesData);
-			buildall();
+            //js = JSON.stringify(_seriesData)
+			//console.log(js);
+            var thedata = [
+							{color: _palette.color(),data: _seriesData[0],name: 'CO2'}, 
+							{color: _palette.color(),data: _seriesData[1],name: 'NO2'}, 
+							{color: _palette.color(),data: _seriesData[2],name: 'PM'}, 
+							{color: _palette.color(),data: _seriesData[3],name: 'Humid'}, 
+							{color: _palette.color(),data: _seriesData[4],name: 'Temp'}, 
+							{color: _palette.color(),data: _seriesData[5],name: 'Methane'}, 
+							{color: _palette.color(),data: _seriesData[6],name: 'BTEX/VOX'}, 
+			]
+			buildall(thedata);
 			bindresizeevent();
 		};
 		
 		// PRIVATE METHODS: var private Method = function() {};
-		var buildall = function () {
+		var buildall = function (thedata) {
 			buildhtml();
-			buildgraph();
+			buildgraph(thedata);
             buildui();
 		}
 		var bindresizeevent = function () {
@@ -57,7 +72,7 @@ var Graphkit = function (){
 		var buildhtml = function () {
 			var form = ' \
 				<form id="options" class="options"> \
-					<h2>Compressor station <span>(Jan 21st 2014 to Feb 4th 2014)</span></h2> \
+					 \
 					<div class="mainoptions"> \
 						<section class="graphtypebuttons"> \
 							<div id="renderer_form" class="toggler"> \
@@ -84,6 +99,7 @@ var Graphkit = function (){
 								<label for="step"><input type="radio" name="interpolation" id="step" value="step-after"><span>step</span></label> \
 							</div> \
 						</section> \
+                    \
 						<section class="smoother"><h6>Smoothing</h6><div id="smoother"></div></section> \
 				    </div> \
 					<section><div class="legend" id="'+_chartid+'_legend"></div></section> \
@@ -102,8 +118,8 @@ var Graphkit = function (){
 			var str =  htmlstructure;
 			document.getElementById(_graphscontainer).insertAdjacentHTML( 'beforeend', str )
 		}
-		var buildgraph = function () {
-			var width = document.getElementById(_chartid).offsetWidth;
+		var buildgraph = function (thedata) {
+          	var width = document.getElementById(_chartid).offsetWidth;
            	_graph = new Rickshaw.Graph( {
 				element: document.getElementById(_chartid),
 				width: width,
@@ -111,15 +127,7 @@ var Graphkit = function (){
 				renderer: 'line',
 				stroke: true,
 				preserve: true,
-				series: [
-							{color: _palette.color(),data: _seriesData[0],name: 'CO2'}, 
-							{color: _palette.color(),data: _seriesData[1],name: 'NO2'}, 
-							{color: _palette.color(),data: _seriesData[2],name: 'PM'}, 
-							{color: _palette.color(),data: _seriesData[3],name: 'Humid'}, 
-							{color: _palette.color(),data: _seriesData[4],name: 'Temp'}, 
-							{color: _palette.color(),data: _seriesData[5],name: 'Methane'}, 
-							{color: _palette.color(),data: _seriesData[6],name: 'BTEX/VOX'}, 
-						]
+				series: thedata
 			});
 			_graph.render();
 		}

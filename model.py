@@ -2,6 +2,8 @@
 import cherrypy, json, csv, re, time, datetime, uuid, os, sys,string, subprocess
 from collections import OrderedDict
 from database import *
+# TODO: Remove this from model & keep in view..
+from jinja2 import Environment, PackageLoader
 
 # TODO: Security check fid variable
 # TODO: Add list of 'registered devices' to config
@@ -13,6 +15,7 @@ class Model:
         dbstruct = self.database_structure()
         self.db = Database(cherrypy.config['dbfile'], dbstruct, ignore='locals')
         self.dbfields = self.db.keys
+        self.kwargs = {}
 
     # Return a nicely formated dict of the db fields
     def grab_dbfields(self):
@@ -153,49 +156,62 @@ class Model:
     
     # VIEW AN INDIVIDUAL as an HTML table
     def view_node_html(self, nid):
+        # TODO: Move view code out of model
+        ENV = Environment(loader=PackageLoader('controllers', 'templates')) 
+        template = ENV.get_template('data.html') 
+        # Setup some base variables
+        ENV = Environment(loader=PackageLoader('controllers', 'templates')) 
         fields = ['datatype', 'apikey', 'title', 'description', 'lat', 'lon', 
-                  'createdhuman', 'updated', 
-                  'latest', 'nid', 'createdby']
+                  'createdhuman', 'updated', 'latest', 'nid', 'createdby']
+        timeadj = (-5*60)*60 # Timestamp adjustment for local time
+        count = self.kwargs['count'] if 'count' in self.kwargs else 3000
+        if count > 3000: count = 3000
+        countfrom = self.kwargs['from'] if 'from' in self.kwargs else 0
+        # Now make the query
         try:
             jsonstr = self.db.readasjson('nodes', fields, [int(nid)])  
             if jsonstr: 
                 data = json.loads(jsonstr)
                 node = data[0]
-                keyarr = node['latest']['csvheader'].split(',')
-                name = '<h2>...</h2>'
+                # TODO This code is a temp fix and should be removed as the submission should be consistant across all datatypes
+                if node['datatype'] == 'speck':
+                    keyarr = ['timestamp', 'raw', 'humidity', 'concentration']
+                else:
+                    keyarr = node['latest']['csvheader'].split(',')
                 if 'name' in node['latest']:
-                    name = '<h2>{} [{}]</h2>'.format(node['title'], node['latest']['name'])
+                    node['title'] = '{} [{}]'.format(node['title'], node['latest']['name'])
+                header = '<h2>{}: Created {}</h2><p>{}</p><hr />'.format(node['title'], node['createdhuman'], node['description'])
                 # Now bring back some actual data!
                 searchfor = {'nid':nid}
                 intable = 'csvs'
                 returnfields = ['created', 'csv']
-                sql = 'ORDER BY timestamp DESC LIMIT 40' 
+                sql = 'ORDER BY timestamp DESC LIMIT {}, {}'.format(countfrom, count) 
                 rows = self.db.searchfor(intable, returnfields, searchfor, sql, 'many')
                 # Now format the output
-                header = '<table><tr><th>'
-                header += '</th><th>'.join(keyarr)+'</th></tr>\n\n\n'
-                rowstr = ''
+                table = '<table id="data"><tr><th>'
+                table += '</th><th>'.join(keyarr)+'</th></tr>\n\n\n'
+                starttime = ''
+                rowdatetime = ''
+                i = 0
                 for row in rows:
                     vals = row[1].split(',')
+                    # Create a timestamp
+                    timestamp = int(vals[0])+timeadj
+                    rowdatetime = datetime.datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+                    vals[0] = rowdatetime
+                    if i == 0: starttime = rowdatetime
+                    # Prep the HTML
                     line = '<tr><td>'
                     line += '</td><td>'.join(vals)
                     line += '</td></tr>'
-                    rowstr += line
-                table = header+rowstr+'</table>'
-                # Some css
-                css = """
-                        th, td{
-                            font-size:80%;
-                            vertical-align: text-top;
-                            font-family:"Lucida Console", Monaco, monospace;
-                            overflow:hidden;
-                            border:1px solid #ccc;
-                            white-space: nowrap;   
-                        }
-                        """
-                return '<html><head><style>{}</style></head><body>{} {}</body></html>'.format(css, name, table)
+                    table += line
+                    i += 1
+                table += '</table>'
+                header += '<strong>View</strong> {} Points <strong> From:</strong> {} <strong>To:</strong> {}'.format(count, starttime, rowdatetime)
+                templatevars = {'table':table, 'header':header}
+                return template.render(var=templatevars )  
             else: 
-                return '{}'
+                return 'No data'
         except Exception as e:
             return 'error: '+str(e)
 
