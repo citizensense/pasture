@@ -164,10 +164,11 @@ class Model:
         fields = ['datatype', 'apikey', 'title', 'description', 'lat', 'lon', 
                   'createdhuman', 'updated', 'latest', 'nid', 'createdby']
         timeadj = int(self.kwargs['timeadj']) if 'timeadj' in self.kwargs else 0 
-        timeadj = (timeadj*60)*60 # Timestamp adjustment for local time
+        timeadjcalc = (timeadj*60)*60 # Timestamp adjustment for local time
         count = int(self.kwargs['count']) if 'count' in self.kwargs else 3000
-        if count > 3000: count = 3000
+        if count > 12000: count = 12000
         countfrom = int(self.kwargs['from']) if 'from' in self.kwargs else 0
+        if countfrom < 0: countfrom = 0
         # Now make the query
         #try:
         jsonstr = self.db.readasjson('nodes', fields, [int(nid)])  
@@ -182,6 +183,12 @@ class Model:
                             'concentration':'particles'
                 }          
             else:
+                graph = {   ' NOppb':'NOppb', 
+                            ' O3ppb':'O3ppb',
+                            ' NO2ppb':'NO2ppb',
+                            ' PIDppm':'PIDppm'
+                }
+                node['latest']['csvheader']
                 keyarr = node['latest']['csvheader'].split(',')
             if 'name' in node['latest']:
                 node['title'] = '{} [{}]'.format(node['title'], node['latest']['name'])
@@ -201,7 +208,7 @@ class Model:
             graphpos = {}
             for item in graph:
                 key = item
-                mapname = graph[item]
+                mapname = graph[item].replace(' ', '')
                 for position, findkey in enumerate(keyarr):
                     if findkey == key:
                         graphpos[key] = {'position':position,'color':"'#000'", 'data':[], 'name':"'{}'".format(mapname)}
@@ -210,14 +217,16 @@ class Model:
             for row in rows:
                 vals = row[1].split(',')
                 # Create a timestamp
-                timestamp = int(vals[0])+timeadj
-                rowdatetime = datetime.datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+                timestamp = int(vals[0])+timeadjcalc
+                rowdatetime = datetime.datetime.fromtimestamp(timestamp).strftime('%d %b %Y %H:%M:%S ({}GMT)'.format(timeadj))
                 vals[0] = rowdatetime
                 if i == 0: starttime = rowdatetime
                 # Prep the js
                 for key in graph:
                     n = graphpos[key]['position']
-                    graphpos[key]['data'].append( {'x':timestamp, 'y':vals[n]} )
+                    val = vals[n]
+                    if val.replace(' ', '') is not '':
+                        graphpos[key]['data'].append( {'x':timestamp, 'y':val} )
                 # Prep the HTML
                 line = '<tr><td>'
                 line += '</td><td>'.join(vals)
@@ -229,8 +238,16 @@ class Model:
             for item in graphpos: data.append(graphpos[item])
             jsondata = json.dumps(data)
             jsdata = jsondata.replace('"', '') # Javscript formated data
+            jsdata = jsdata.replace(' ', '')
             table += '</table>'
-            header += '<strong>View</strong> {} Points <strong> From:</strong> {} <strong>To:</strong> {}'.format(count, starttime, rowdatetime)
+            prevcount = countfrom-count
+            nextlink = '<a class="prevnext" href="/api/viewhtml/{}/?count={}&from={}&timeadj={}">Next&raquo;</a>'.format(nid, count, countfrom+count, timeadj)
+            if prevcount <= 0: 
+                prevcount=0
+                prevlink = ''
+            if countfrom > 0:
+                prevlink = '<a class="prevnext" href="/api/viewhtml/{}/?count={}&from={}&timeadj={}">&#171;Previous</a>'.format(nid, count, prevcount, timeadj)
+            header += '<strong>{}</strong> | <strong>View</strong> {} Points <strong> From:</strong> {} <strong>To:</strong> {} | <strong>{}</strong>'.format(prevlink, count, rowdatetime, starttime,  nextlink)
             templatevars = {'table':table, 'header':header, 'jsdata':jsdata}
             return template.render(var=templatevars )  
         else: 
