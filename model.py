@@ -178,7 +178,7 @@ class Model:
             graph = []
             # TODO This code is a temp fix and should be removed as the submission should be consistant across all datatypes
             if node['datatype'] == 'speck':
-                keyarr = ['timestamp', 'raw', 'humidity', 'concentration']
+                keyarr = ['timestamp', 'raw', 'concentration', 'humidity']
                 graph = {   'humidity':'humidity', 
                             'concentration':'particles'
                 }          
