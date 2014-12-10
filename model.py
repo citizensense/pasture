@@ -607,7 +607,7 @@ class SpecGatewaySubmission:
         print('\n=======String to save')
         print(csvheader+'\n'+csvstring)
         try:
-            directory = 'data/'+str(nid)
+            directory = 'data/csvs/'+str(nid)
             # Check we have a folder
             cherrypy.config['datalogger'].createDir(directory)
             # Now save the file
@@ -740,7 +740,7 @@ class CitizenSenseKitSubmission:
         csvheader = ','.join(keys)
         csvvalues = '\n'.join(rows)
         try:
-            directory = 'data/'+str(nid)
+            directory = 'data/csvs/'+str(nid)
             # Check we have a folder
             cherrypy.config['datalogger'].createDir(directory)
             # Now save the file

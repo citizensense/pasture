@@ -449,7 +449,10 @@ jQuery(document).ready(function(){
                         '</fieldset>'+
                         '<div id="deletemsg"></div>'+
                     '</form>';
-                content = links+'<div id="forms" class="pure-form  pure-form-aligned"></div>'+meta;
+                downloadlink = '<hr /><a href="/csvs/'+nid+'/data.csv">Download data.csv file</a><hr />';
+                content = links+'<div id="forms" class="pure-form  pure-form-aligned"></div>'
+                content += downloadlink
+                content += meta;
                 // Display data in the big message box
                 $('#nodedata .content').html(content);
                     // Setup the edit button

@@ -50,6 +50,10 @@ def get_config():
             'tools.staticdir.on': True,
             'tools.staticdir.dir': './public'
         },
+        '/csvs': {
+            'tools.staticdir.on': True,
+            'tools.staticdir.dir': './data/csvs'
+        },
         # Simple authentification used for validating speck gateway application
         # TODO: Create plugin specific hook so this plugin doesn't live here
         '/api/bodytrack/jupload': {
@@ -64,8 +68,6 @@ def get_config():
 # TODO: Implement proper authenification, this is a hack for the moment...
 # TODO: Implement 'plugin' specific hook so this code doesn't live here!
 def validate_password(self, username, password):
-    print('USERNAME: '+username)
-    print('PASSWORD: '+password)
     return True
     if username in USERS and USERS[username] == password:
            return True
