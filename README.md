@@ -19,3 +19,5 @@ With the following fields:
 #### View all submissions: /api/view/all
 #### View specific submission: /api/view/###
 
+## LICENCE
+Released under the GNU GENERAL PUBLIC LICENSE see LICENCE document for details
