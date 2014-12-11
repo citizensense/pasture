@@ -4,8 +4,6 @@ IN ACTIVE DEVELOPMENT - NOT YET WORKING !
 ### What is Pasture? 
 Pasture is a webbased platform that enables recording and display of time series data. 
 
-[www.citizensense.net](http://citizensense.net)
-
 ## The API
 More information coming soon...
 
