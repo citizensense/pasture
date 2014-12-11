@@ -12,7 +12,9 @@ View these API instructions: /api
 More information coming soon...
 
 ##Credits
-Pasture has been authored by Tom Keene as part of Citizen Sense: www.citizensense.net
+Author Tom Keene produced as part of the Citizen Sense Project
+
+www.citizensense.net
 
 #####The project team includes:
 Jennifer Gabrys, Principal Investigator
