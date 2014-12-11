@@ -2,8 +2,7 @@
 IN ACTIVE DEVELOPMENT - NOT YET WORKING !
 
 ### What is Pasture? 
-A platform to display data produced as a result of sensor gathering practices. 
-This data can take the form of images, text, video or key value pairs.
+Pasture is a webbased platform that enables recording and display of time series data. 
 
 [www.citizensense.net](http://citizensense.net)
 
