@@ -8,7 +8,7 @@ Pasture is a webbased platform that enables recording and display of time series
 More information coming soon...
 
 ##Credits
-Author: Tom Keene 
+Author: Tom Keene  (Working closely with the project Team)
 
 Produced as part of the Citizen Sense Project: www.citizensense.net
 
