@@ -5,7 +5,7 @@ IN ACTIVE DEVELOPMENT - NOT YET WORKING !
 A platform to display data produced as a result of sensor gathering practices. 
 This data can take the form of images, text, video or key value pairs.
 
-[More](http://citizensense.net)
+[www.citizensense.net](http://citizensense.net)
 
 ## The API
 
