@@ -12,9 +12,9 @@ View these API instructions: /api
 More information coming soon...
 
 ##Credits
-Author Tom Keene produced as part of the Citizen Sense Project
+Author: Tom Keene 
 
-www.citizensense.net
+Produced as part of the Citizen Sense Project: www.citizensense.net
 
 #####The project team includes:
 Jennifer Gabrys, Principal Investigator
