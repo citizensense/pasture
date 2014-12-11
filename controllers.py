@@ -11,8 +11,8 @@ class Root(object):
     def index(self, *args, **kwargs):
         template = ENV.get_template('index.html')
         try:
-            print('KWARGS========={}============:::: {}'.format(kwargs, kwargs['show']))
-            if kwargs['show'] == "letmesee*frackbox*":
+            passwd = cherrypy.config['CONFIG']['FRACKBOXPASSWORD']
+            if kwargs['show'] == passwd:
                 return template.render(showhide='/api/viewall')
         except:
             pass

@@ -27,7 +27,7 @@ def get_config():
         'datalogger': LogCsvData(),
         'CONFIG':CONFIG,
         'session':{},
-        'sessionlock':threading.Lock() # TODO: A quick hack
+        'sessionlock':threading.Lock() # TODO: A quick hack to help with managing sessions
     })
     # Initialise the database structure, creating tables if need
     model = Model()
