@@ -8,7 +8,6 @@ This data can take the form of images, text, video or key value pairs.
 [www.citizensense.net](http://citizensense.net)
 
 ## The API
-View these API instructions: /api
 More information coming soon...
 
 ##Credits
@@ -16,7 +15,7 @@ Author: Tom Keene
 
 Produced as part of the Citizen Sense Project: www.citizensense.net
 
-#####The project team includes:
+#####The project team:
 Jennifer Gabrys, Principal Investigator
 
 Nick Shapiro, Post-Doctoral Researcher
