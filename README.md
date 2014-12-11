@@ -7,17 +7,28 @@ This data can take the form of images, text, video or key value pairs.
 
 [More](http://citizensense.net)
 
-### The API
+## The API
 
 ### View these API instructions: /api
-
-#### Post new data to: /api/create
-With the following fields:
-    - myFile
-    - gps
+Coming soon...
 
 #### View all submissions: /api/view/all
 #### View specific submission: /api/view/###
 
+##Credits
+Pasture has been authored by Tom Keene as part of Citizen Sense: www.citizensense.net
+
+#####The project team includes:
+Jennifer Gabrys, Principal Investigator
+
+Nick Shapiro, Post-Doctoral Researcher
+
+Nerea Calvillo, Researcher
+
+Tom Keene, Researcher
+
+Helen Pritchard, Researcher
+
 ## LICENCE
 Released under the GNU GENERAL PUBLIC LICENSE see LICENCE document for details
+
