@@ -8,12 +8,8 @@ This data can take the form of images, text, video or key value pairs.
 [www.citizensense.net](http://citizensense.net)
 
 ## The API
-
-### View these API instructions: /api
-Coming soon...
-
-#### View all submissions: /api/view/all
-#### View specific submission: /api/view/###
+View these API instructions: /api
+More information coming soon...
 
 ##Credits
 Pasture has been authored by Tom Keene as part of Citizen Sense: www.citizensense.net
@@ -29,6 +25,6 @@ Tom Keene, Researcher
 
 Helen Pritchard, Researcher
 
-## LICENCE
+## License
 Released under the GNU GENERAL PUBLIC LICENSE see LICENCE document for details
 
