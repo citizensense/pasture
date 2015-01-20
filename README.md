@@ -7,7 +7,7 @@ Pasture is a webbased platform that enables recording and display of time series
 ## The API
 More information coming soon...
 
-#####The project team:
+## The project team:
 Jennifer Gabrys, Principal Investigator
 
 Nick Shapiro, Post-Doctoral Researcher
