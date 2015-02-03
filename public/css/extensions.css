@@ -188,7 +188,8 @@ label.disabled {
 form.options{
 	background-color:#404040;
 	padding-top:8px;
-	position:relative;
+	position:;
+	top:0px;
 }
 .mainoptions{
 	position:absolute;
@@ -221,7 +222,7 @@ form.options{
 	width:80%;
 }
 .rickshaw_annotation_timeline{
-	display:none;
+
 }
 #interpolation_form,
 #offset_form {

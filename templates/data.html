@@ -74,11 +74,12 @@
 <body>
 
 <div id="head">{{ var['header'] }}</div>
+
 <div id="maincontent">
- <h3>Graph</h3>  
-<div id="charts">
-    <div id="chart1" class="chart"></div>
-</div>
+	<h3>Graph</h3>  
+	<div id="charts">
+	</div>
+
 <h3>Data</h3>
 {{ var['table'] }}
 </div> 
@@ -118,14 +119,14 @@
 <script src="/public/js/graph.js"></script>
 
 <script>
-    // The data
+    // Some test data
     //data = [
     //    {color: '#555', data:[{x:123,y:4.6}, {x:128,y:4.9}], name: 'CO2'},
     //    {color: '#000', data:[{x:123,y:4.6}], name: 'NO2'}
     //]
     data = {{ var['jsdata'] }}
-    // Create the graph
-    var mygraph = new Graphkit("chart1", 250);  // id, height, data
+    // Create a new graph with a specified ID within a div called charts
+	var mygraph = new Graphkit('chart{{ var['nid'] }}' , 250);  // id, height, data
     mygraph.build(data);
     //mygraph.testdata();
 

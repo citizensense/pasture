@@ -98,7 +98,7 @@ class WebService(object):
             # Nope its a list or string
             else:
                 data['submitted'][key] = kwargs[key]
-        # Parse the submission and save the data if its valid
+        # Parse the POST submission and determin what to do with the data
         data = model.parse_submission(data)
         # Issue a response to the POST
         print('\n===RETURN JSON ====================')

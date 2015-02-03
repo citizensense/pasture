@@ -52,6 +52,13 @@ class Model:
                 ('timestamp', 'INTEGER'),
                 ('csv', 'TEXT')
             ]),
+            # A place to store annotations
+            ('annotations', [
+                ('aid', 'INTEGER PRIMARY KEY'),
+                ('nid', 'INTEGER'),                
+                ('timestamp', 'INTEGER'),
+                ('annotation', 'TEXT')
+            ]),
             # This isn't created in the database, its just used for internal var storage
             # TODO: Pos get rid of this as its setup in the controller
             ('locals',{
@@ -70,13 +77,13 @@ class Model:
     def grab_opensessions(self):
         return len(cherrypy.config['session'])
 
-    # Parse the submission and determine what we need to do with it
+    # Parse POSTED data and determine what we need to do with it
     def parse_submission(self, data):
         # Grab the submitted data and convert it to JSON with all commas escaped to &#44;
         jsondump = json.dumps(data['submitted'])
         data['info']['submissiondata'] = jsondump.replace(',', '&#44')
         # Check what/who submitted this data, parse it, then fill in our data structure
-        plugins=(UploadformSubmission, SpecGatewaySubmission, CitizenSenseKitSubmission)
+        plugins=(AnnotationSubmission, UploadformSubmission, SpecGatewaySubmission, CitizenSenseKitSubmission)
         for plugin in plugins:
             obj = plugin()
             parsedoutput = obj.checksubmission(self, data)
@@ -85,6 +92,8 @@ class Model:
         data['nsessions'] = self.grab_opensessions()
         # Prepare for json response
         if parsedoutput:
+            # TODO: Should get rid of this and just return the response from the
+            # modules... they should decide to pop or not!
             data.pop('filestosave', None)
             data.pop('submitted', None) 
             # Check if we return a custom repsponse
@@ -93,6 +102,7 @@ class Model:
             # If not, the check for errors
             elif len(parsedoutput['errors']) <= 0:
                 # All looks OK
+                # TODO: SHould move this to the modules...
                 data['success']['code'] = 'OK'
                 data['success']['msg'] = 'A new node has been created' 
         else:
@@ -103,6 +113,31 @@ class Model:
             data['errors']['form'] = 'Post structure not recognised' 
         return json.dumps(data)
     
+    # CREATE A NEW ANNOTATION
+    # sqlite> CREATE TABLE annotations(
+    #         aid INT INTEGER PRIMARY KEY NOT NULL,
+    #         nid INTEGER NOT NULL,
+    #         timestamp INTEGER NOT NULL,
+    #         annotation TEXT NOT NULL
+    # );
+    def create_annotation(self, nid, timecode,annotation):
+        # And construct the ordered dict ready for the database
+        newannotation = OrderedDict([
+            ('fieldnames',['nid', 'timecode', 'annotation']),
+            ('values',[nid, timecode, annotation])  
+        ]) 
+        aid = self.db.create('annotations', newannotation)
+        print('DB ANNOTATION RESPONSE')
+        print(newannotation)
+        print(aid)
+        response = {}
+        if aid == None or aid == False:
+            response['code'] = 'KO'
+            response['msg'] = 'Database could not create annotation'
+        else:
+            response['code'] = 'OK'
+        return response
+
     # CREATE A NEW NODE
     def create_node(self, data):
         # As we are creating a single node lets create seperate field and value lists
@@ -217,8 +252,9 @@ class Model:
             for row in rows:
                 vals = row[1].split(',')
                 # Create a timestamp
-                timestamp = int(vals[0])+timeadjcalc
-                rowdatetime = datetime.datetime.fromtimestamp(timestamp).strftime('%d %b %Y %H:%M:%S ({}GMT)'.format(timeadj))
+                timestamp = int(vals[0]) #+timeadjcalc
+                rowdatetime = vals[0]+' | '+datetime.datetime.fromtimestamp(timestamp).strftime('%d %b %Y %H:%M:%S ({}GMT)'.format(timeadj))
+                #rowdatetime += '<br />'+datetime.datetime.fromtimestamp(int(vals[0])).strftime('%d %b %Y %H:%M:%S')
                 vals[0] = rowdatetime
                 if i == 0: starttime = rowdatetime
                 # Prep the js
@@ -248,7 +284,7 @@ class Model:
             if countfrom > 0:
                 prevlink = '<a class="prevnext" href="/api/viewhtml/{}/?count={}&from={}&timeadj={}">&#171;Previous</a>'.format(nid, count, prevcount, timeadj)
             header += '<strong>{}</strong> | <strong>View</strong> {} Points <strong> From:</strong> {} <strong>To:</strong> {} | <strong>{}</strong>'.format(prevlink, count, rowdatetime, starttime,  nextlink)
-            templatevars = {'table':table, 'header':header, 'jsdata':jsdata}
+            templatevars = {'nid':nid,'table':table, 'header':header, 'jsdata':jsdata, 'timeadj':timeadj}
             return template.render(var=templatevars )  
         else: 
             return 'No data'
@@ -384,8 +420,8 @@ class Model:
     def match_keys(self, expected, provided):
         # List of field names we are expecting and specify 
         for key in provided:
-            if key not in expected: 
-                state = False
+            if key not in expected:
+                return False
             else: 
                 state = True
         if len(expected) is not len(provided):
@@ -396,6 +432,53 @@ class Model:
 #==============PLUGINS TO HANDLE MULTIPLE TYPES OF DATA SUBMISSION==================#
 #===================================================================================#
 
+#========= THE ANNOTATION FORM ============================================#
+class AnnotationSubmission:
+
+    # [REQUIRED METHOD] Check if submission is recognised, if it is, return structured data
+    def checksubmission(self, model, data):
+        self.data = data
+        self.model = model
+        response = {}
+        # List of field names we are expecting
+        expected = ['timecode','annotation', 'chartid'] # username, password, sessionid
+        submitted = data['submitted'].keys()
+        if self.model.match_keys(expected, submitted) == False:
+            return False
+        # Now check if this submission has been made by a valid user
+        #username = data['submitted']['username']
+        #password = data['submitted']['password']
+        #sessionid = data['submitted']['sessionid']
+        # Check if we are logged in and save the session id if we are
+        #self.user = self.model.validuser(username, password, sessionid)
+        #if self.user is False:
+        #    data['errors']['user'] = 'This username/password combination has not been recognised. Or you may have been automatically logged out.'
+        #    data['sessionid'] = '' 
+        #          
+        # OK lets validate the data
+        response['msg'] = ''
+        response['code'] = 'OK'   
+        try:
+            nid = int(data['submitted']['chartid'].replace('chart',''))
+            timecode = int(data['submitted']['timecode'])
+        except Exception as e:
+            response['code'] = 'KO'  
+            response['msg'] += 'Invalid ChartID or timecode'  
+        annotation = data['submitted']['annotation'].strip()
+        if annotation == '':
+            response['code'] = 'KO'  
+            response['msg'] += 'Please fill in the annotation field'     
+        # Now attempt to save to the database
+        if response['code'] != 'KO':
+            dbresp = self.model.create_annotation(nid, timecode, annotation)
+            if dbresp['code'] == 'KO':
+                response['code'] = 'KO'
+                response['msg'] = 'DB Error: '+dbresp['msg']
+            else:
+                response['msg'] = 'A new annotation has been submitted'    
+        data['altresponse'] = json.dumps(response)
+        return data
+ 
 #========= THE MAIN UPLOAD FORM ============================================#
 class UploadformSubmission:
 
