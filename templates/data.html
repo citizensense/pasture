@@ -124,10 +124,17 @@
     //    {color: '#555', data:[{x:123,y:4.6}, {x:128,y:4.9}], name: 'CO2'},
     //    {color: '#000', data:[{x:123,y:4.6}], name: 'NO2'}
     //]
-    data = {{ var['jsdata'] }}
+	//annotations = [
+	//	[4, 1413526296000, "A note"], 
+	//	[5, 1413526296000, "Another note"], 
+	//	[7, 1413526296000, "Description"]
+	//] 
+    data = {{ var['jsdata'] }};
+	
+	annotations = {{ var['annotationsjson'] }}; 
     // Create a new graph with a specified ID within a div called charts
-	var mygraph = new Graphkit('chart{{ var['nid'] }}' , 250);  // id, height, data
-    mygraph.build(data);
+	var mygraph = new Graphkit('chart{{ var['nid'] }}' , 250);  // id, height
+    mygraph.build(data, annotations); // The data
     //mygraph.testdata();
 
 </script>

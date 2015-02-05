@@ -16,12 +16,15 @@ var Graphkit = function (){
 		var _preview;
 		var _rolloverstring = rolloverstring;
 		var _hoverpos;
+		var _annotations;
+		var _subcounter = 0;
+		var _sublock;
 
 		// PUBLIC METHODS: this.publicMethod = function() {};
-		this.build = function (data){
+		this.build = function (data, annotations){
+			_annotations = annotations;
 		    // Colorise the lines
 		    for (i = 0; i < data.length; i++) {
-		        console.log( data[i]['color'] )
                 data[i]['color'] = _palette.color(); 
 		    }
 		    // Then build the graph
@@ -65,24 +68,102 @@ var Graphkit = function (){
         	var graph = document.getElementById(graphdiv);
         	graph.addEventListener('click',function (e) {
         		// Populate the form field with the timecode
-        		fieldid = _chartid+'_timecode';
-        		field = document.getElementById(fieldid);
+        		var fieldid = _chartid+'_timecode';
+        		var field = document.getElementById(fieldid);
         		field.value = _hoverpos;
+        		var form = document.getElementById(_chartid+'_anoform');
+				form.style.display = 'block';
+				var formbutton = document.getElementById(_chartid+'_submitanno');
+				var dateobj = new Date(_hoverpos*1000);
+				var date = dateobj.toUTCString();
+				formbutton.value = 'Create annotation for:\n'+date;
 			},true);
-			// Make sure the form submits without reloading the page
+			// Lets sort the close button
+			var closebutton = document.getElementById(_chartid+'_close'); 
+			closebutton.addEventListener('click',function (e) {
+				var form = document.getElementById(_chartid+'_anoform'); 
+				form.style.display = 'none';
+			},true);
+			// Construct the edit button functionality
+			var editbuts = document.getElementsByClassName(_chartid+'_anoeditclass');	
+			for (i=0;i<editbuts.length;i++){
+				editbuts[i].addEventListener('click',function (e) {
+					var form = document.getElementById(_chartid+'_anoform');
+					var text = document.getElementById(_chartid+'_text');
+					aid = this.id.replace('aid', '');
+					for (n=0;n<_annotations.length;n++){
+						if(_annotations[n][0]==aid){
+							text.value=_annotations[n][2];
+							document.getElementById(_chartid+'_update').value = aid;
+							document.getElementById(_chartid+'_submitanno').value='Update annotation';
+							document.getElementById(_chartid+'_anoform').method = 'PUT';
+						}
+					}
+					form.style.display = 'block';
+				});
+			}
+			// Now lets submit the form and override the default action
 			var submitid = _chartid+'_submitanno'; 
 			var submit = document.getElementById(submitid);
-			submit.addEventListener('click',function (e) {    
-					
+			submit.addEventListener('click',function (e) {
+				e.preventDefault();
+				aid = document.getElementById(_chartid+'_update').value;
+				// Lets check if the update field has been populated, if so, the PUT
+				if(aid!=''){					
+					submitme('POST', '/api/update/'+aid);
+				// Otherise just POST
+				}else{
+					submitme('POST', '/api');
+				}
 			},true);   
-			// Add a click event to the annotations: A test - Not working...
-			//annotations = document.getElementByClassName('annotation');
-			//annotations.map( function(annotation) {
-			//	annotation.addEventListener('click',function (e) {
-        	//		alert('2. Captured Anno');
-			//	},true);
-			//});
 		}
+		// Build a form submission and response
+		var submitme = function(method, url) { // POST, GET, DELETE
+			// Lets hide the form and wait
+    		var form = document.getElementById(_chartid+'_anoform'); 
+			form.display = 'none';
+			var XHR = new XMLHttpRequest();
+    		// We bind the FormData object and the form element
+    		var FD  = new FormData(form);
+    		// We define what will happen if the data is successfully sent
+    		XHR.addEventListener("load", function(event) {
+				try {
+					jsonresp = JSON.parse(event.target.responseText);
+				}catch(e){
+					jsonresp = false;
+				}
+				if(jsonresp!=false){
+					// If all ok, lets add the new annotation
+					if(jsonresp['code']=='OK'){
+						var text = document.getElementById(_chartid+'_text');
+						annotator.add(_hoverpos, text.value);
+						annotator.update();
+						text.value = '';
+						var form = document.getElementById(_chartid+'_anoform');   
+						var session = document.getElementById(_chartid+'_sessionid');
+						session.value = jsonresp['sessionid']
+						form.style.display = 'none';
+						// hide the form fields
+						var loginfields = document.getElementsByClassName(_chartid+'_hideuser');	
+						for (i=0;i<loginfields.length;i++){
+								loginfields[i].style.display = 'none';
+						}
+						alert(jsonresp['msg']);
+					}else{
+						alert('Error. Couldn\'t unerstand repsonse from server: '+event.target.responseText);
+						form.display = 'block';
+					}
+				}
+    		});
+    		// We define what will happen in case of error
+    		XHR.addEventListener("error", function(event) {
+      			alert('Sorry! Unable to submit form. Possible server error.');
+				form.display = 'block';
+    		});
+    		// We setup our request
+    		XHR.open(method, url);
+    		XHR.send(FD);
+  		}
 		var bindresizeevent = function () {
 			var waitForFinalEvent = (function () {
 			var timers = {};
@@ -138,13 +219,20 @@ var Graphkit = function (){
 				</form> \
 			';
 			var annotationform = ' \
-				<iframe style="height:20px;width:100%;" name="'+_chartid+'_iframe"></iframe> \
-				<form class="addannotationform" action="/api" method="POST" target="'+_chartid+'_iframe">   \
-					<h3>Write graph annotation</h3> \
-					<input type="text" name="timecode" id="'+_chartid+'_timecode"/> \
-					<input type="text" name="chartid" value="'+_chartid+'" id="'+_chartid+'_chartid"/> \
-					<textarea rows="4" name="annotation"> </textarea>   \
-					<input type="submit" id="'+_chartid+'_submitanno" /> \
+				<iframe style="display:none;" name="'+_chartid+'_iframe" id="'+_chartid+'_iframer"></iframe> \
+				<form class="addannotationform" id="'+_chartid+'_anoform" action="/api" method="POST" target="'+_chartid+'_iframe">   \
+					<a href="#" class="annoclose" id="'+_chartid+'_close" >close [X]</a> \
+					<input type="hidden" name="timecode" id="'+_chartid+'_timecode"/> \
+					<input type="hidden" name="chartid" value="'+_chartid+'" id="'+_chartid+'_chartid"/> \
+					<label class="'+_chartid+'_hideuser">Username</label> \
+					<input class="'+_chartid+'_hideuser" type="text" name="username" value="admin" id="'+_chartid+'_username"/> \
+					<label class="'+_chartid+'_hideuser">password</label> \
+					<input class="'+_chartid+'_hideuser" type="text" name="password" value="carbon31" id="'+_chartid+'_password"/> \
+					<input type="hidden" name="sessionid" value="" id="'+_chartid+'_sessionid"/> \
+					<input type="text" name="update" value="" id="'+_chartid+'_update"/> \
+					<label>Text</label> \
+					<textarea rows="4" name="annotation" id="'+_chartid+'_text"> </textarea>   \
+					<input type="submit" class="anosubmit" id="'+_chartid+'_submitanno" value="Create annotation" /> \
 				</form> \
 			';
 			var htmlstructure = ' \
@@ -187,18 +275,23 @@ var Graphkit = function (){
 				graph: _graph,
 				xFormatter: function(x) {
 					timecode = x * 1000;
-					_hoverpos = timecode;
+					_hoverpos = timecode/1000;
 					dateobj = new Date(timecode);
 					date = dateobj.toDateString()+dateobj.toUTCString();
 					return date;
 				}
 			} );
-			var annotator = new Rickshaw.Graph.Annotate( {
+			annotator = new Rickshaw.Graph.Annotate( {
 				graph: _graph,
 				element: document.getElementById(_chartid+'_timeline')
 			} );
-			annotator.add('1413465975', 'a test message');
-			annotator.add('1413502536', 'This is a very long description of some sort which explains allot of things in great detail.... but we need to expand our descriptions as things can get mental and we need to put lots of work inot thinging about how large texts might work which in itself is someting to think about. ');
+			// Add annotations to the graph
+			for (i = 0; i < _annotations.length; i++) {
+				var aid = _annotations[i][0];
+				var timestamp = _annotations[i][1];  
+				var text = _annotations[i][2];
+				annotator.add(timestamp, '<a class="anoedit '+_chartid+'_anoeditclass" id="aid'+aid+'">edit</a>'+text);
+			}
 			annotator.update();
 			var legend = new Rickshaw.Graph.Legend( {
 				graph: _graph,

@@ -55,7 +55,8 @@ class Model:
             # A place to store annotations
             ('annotations', [
                 ('aid', 'INTEGER PRIMARY KEY'),
-                ('nid', 'INTEGER'),                
+                ('nid', 'INTEGER'), 
+                ('uid', 'INTEGER'),
                 ('timestamp', 'INTEGER'),
                 ('annotation', 'TEXT')
             ]),
@@ -115,27 +116,26 @@ class Model:
     
     # CREATE A NEW ANNOTATION
     # sqlite> CREATE TABLE annotations(
-    #         aid INT INTEGER PRIMARY KEY NOT NULL,
-    #         nid INTEGER NOT NULL,
+    #         aid INTEGER PRIMARY KEY,
+    #         nid INTEGER NOT NULL, 
     #         timestamp INTEGER NOT NULL,
-    #         annotation TEXT NOT NULL
+    #         uid INTEGER NOT NULL, 
+    #         text TEXT NOT NULL
     # );
-    def create_annotation(self, nid, timecode,annotation):
+    def create_annotation(self, nid, uid, timestamp, text):
         # And construct the ordered dict ready for the database
         newannotation = OrderedDict([
-            ('fieldnames',['nid', 'timecode', 'annotation']),
-            ('values',[nid, timecode, annotation])  
+            ('fieldnames',['nid', 'uid', 'timestamp', 'text']),
+            ('values',[[nid, uid, timestamp, text]])  
         ]) 
         aid = self.db.create('annotations', newannotation)
-        print('DB ANNOTATION RESPONSE')
-        print(newannotation)
-        print(aid)
         response = {}
         if aid == None or aid == False:
             response['code'] = 'KO'
-            response['msg'] = 'Database could not create annotation'
+            response['msg'] = 'Could not create annotation. DB Error: {0}'.format(self.db.msg)
         else:
             response['code'] = 'OK'
+            response['msg'] = 'Annotation #{0} has been saved'.format(aid)
         return response
 
     # CREATE A NEW NODE
@@ -191,6 +191,113 @@ class Model:
     
     # VIEW AN INDIVIDUAL as an HTML table
     def view_node_html(self, nid):
+        # TODO: Move view code out of model
+        ENV = Environment(loader=PackageLoader('controllers', 'templates')) 
+        template = ENV.get_template('data.html') 
+        # Setup some base variables
+        ENV = Environment(loader=PackageLoader('controllers', 'templates')) 
+        fields = ['datatype', 'apikey', 'title', 'description', 'lat', 'lon', 
+                  'createdhuman', 'updated', 'latest', 'nid', 'createdby']
+        timeadj = int(self.kwargs['timeadj']) if 'timeadj' in self.kwargs else 0 
+        timeadjcalc = (timeadj*60)*60 # Timestamp adjustment for local time
+        count = int(self.kwargs['count']) if 'count' in self.kwargs else 3000
+        if count > 12000: count = 12000
+        countfrom = int(self.kwargs['from']) if 'from' in self.kwargs else 0
+        if countfrom < 0: countfrom = 0
+        # Now make the query
+        #try:
+        jsonstr = self.db.readasjson('nodes', fields, [int(nid)])  
+        if jsonstr: 
+            data = json.loads(jsonstr)
+            node = data[0]
+            graph = []
+            # TODO This code is a temp fix and should be removed as the submission should be consistant across all datatypes
+            if node['datatype'] == 'speck':
+                keyarr = ['timestamp', 'raw', 'concentration', 'humidity']
+                graph = {   'humidity':'humidity', 
+                            'concentration':'particles'
+                }          
+            else:
+                graph = {   ' NOppb':'NOppb', 
+                            ' O3ppb':'O3ppb',
+                            ' NO2ppb':'NO2ppb',
+                            ' PIDppm':'PIDppm'
+                }
+                node['latest']['csvheader']
+                keyarr = node['latest']['csvheader'].split(',')
+            if 'name' in node['latest']:
+                node['title'] = '{} [{}]'.format(node['title'], node['latest']['name'])
+            header = '<h2>{}: Created {}</h2><p>{}</p><hr />'.format(node['title'], node['createdhuman'], node['description'])
+            # Now bring back some actual data!
+            searchfor = {'nid':nid}
+            intable = 'csvs'
+            returnfields = ['created', 'csv']
+            sql = 'ORDER BY timestamp DESC LIMIT {}, {}'.format(countfrom, count) 
+            rows = self.db.searchfor(intable, returnfields, searchfor, sql, 'many')
+            # And grab a list of annotations
+            sql = 'ORDER BY timestamp DESC LIMIT {}, {}'.format(countfrom, count) 
+            annotations = self.db.searchfor('annotations', ['aid','timestamp','text'], {'nid':nid}, sql, 'many')
+            annotationsjson = json.dumps(annotations)
+            # And prep vars used to format the output
+            table = '<table id="data"><tr><th>'
+            table += '</th><th>'.join(keyarr)+'</th></tr>\n\n\n'
+            starttime = ''
+            rowdatetime = ''
+            # Make a record of the position of the keys
+            graphpos = {}
+            for item in graph:
+                key = item
+                mapname = graph[item].replace(' ', '')
+                for position, findkey in enumerate(keyarr):
+                    if findkey == key:
+                        graphpos[key] = {'position':position,'color':"'#000'", 'data':[], 'name':"'{}'".format(mapname)}
+            i = 0
+            # Now loop through the data and generate data and json
+            for row in rows:
+                vals = row[1].split(',')
+                # Create a timestamp
+                timestamp = int(vals[0]) #+timeadjcalc
+                rowdatetime = vals[0]+' | '+datetime.datetime.fromtimestamp(timestamp).strftime('%d %b %Y %H:%M:%S ({}GMT)'.format(timeadj))
+                #rowdatetime += '<br />'+datetime.datetime.fromtimestamp(int(vals[0])).strftime('%d %b %Y %H:%M:%S')
+                vals[0] = rowdatetime
+                if i == 0: starttime = rowdatetime
+                # Prep the js
+                for key in graph:
+                    n = graphpos[key]['position']
+                    val = vals[n]
+                    if val.replace(' ', '') is not '':
+                        graphpos[key]['data'].append( {'x':timestamp, 'y':val} )
+                # Prep the HTML
+                line = '<tr><td>'
+                line += '</td><td>'.join(vals)
+                line += '</td></tr>'
+                table += line
+                i += 1
+            # Now prep the final output
+            data = []
+            for item in graphpos: data.append(graphpos[item])
+            jsondata = json.dumps(data)
+            jsdata = jsondata.replace('"', '') # Javscript formated data
+            jsdata = jsdata.replace(' ', '')
+            table += '</table>'
+            prevcount = countfrom-count
+            nextlink = '<a class="prevnext" href="/api/viewhtml/{}/?count={}&from={}&timeadj={}">Next&raquo;</a>'.format(nid, count, countfrom+count, timeadj)
+            if prevcount <= 0: 
+                prevcount=0
+                prevlink = ''
+            if countfrom > 0:
+                prevlink = '<a class="prevnext" href="/api/viewhtml/{}/?count={}&from={}&timeadj={}">&#171;Previous</a>'.format(nid, count, prevcount, timeadj)
+            header += '<strong>{}</strong> | <strong>View</strong> {} Points <strong> From:</strong> {} <strong>To:</strong> {} | <strong>{}</strong>'.format(prevlink, count, rowdatetime, starttime,  nextlink)
+            templatevars = {'nid':nid,'table':table, 'header':header, 'jsdata':jsdata, 'timeadj':timeadj, 'annotationsjson':annotationsjson}
+            return template.render(var=templatevars)  
+        else: 
+            return 'No data'
+        #except Exception as e:
+        #    return 'error: '+str(e)
+
+ 
+    # VIEW AN INDIVIDUAL as an HTML table
+    def view_node_htmlOLD(aself, nid):
         # TODO: Move view code out of model
         ENV = Environment(loader=PackageLoader('controllers', 'templates')) 
         template = ENV.get_template('data.html') 
@@ -439,25 +546,28 @@ class AnnotationSubmission:
     def checksubmission(self, model, data):
         self.data = data
         self.model = model
-        response = {}
+        response = {}    
+        response['msg'] = ''
+        response['code'] = 'OK'   
         # List of field names we are expecting
-        expected = ['timecode','annotation', 'chartid'] # username, password, sessionid
+        expected = ['timecode','annotation', 'chartid', 'username', 'password', 'sessionid', 'update'] # username, password, sessionid
         submitted = data['submitted'].keys()
         if self.model.match_keys(expected, submitted) == False:
             return False
         # Now check if this submission has been made by a valid user
-        #username = data['submitted']['username']
-        #password = data['submitted']['password']
-        #sessionid = data['submitted']['sessionid']
+        username = data['submitted']['username']
+        password = data['submitted']['password']
+        sessionid = data['submitted']['sessionid']
         # Check if we are logged in and save the session id if we are
-        #self.user = self.model.validuser(username, password, sessionid)
-        #if self.user is False:
-        #    data['errors']['user'] = 'This username/password combination has not been recognised. Or you may have been automatically logged out.'
-        #    data['sessionid'] = '' 
-        #          
+        self.user = self.model.validuser(username, password, sessionid)
+        if self.user is False:
+            response['code'] = 'KO'
+            response['msg'] = 'This username/password combination has not been recognised. Or you may have been automatically logged out. Please try again.'
+            data['sessionid'] = ''           
+        else:
+            uid = self.user['uid'] 
+            response['sessionid'] = self.user['sessionid']
         # OK lets validate the data
-        response['msg'] = ''
-        response['code'] = 'OK'   
         try:
             nid = int(data['submitted']['chartid'].replace('chart',''))
             timecode = int(data['submitted']['timecode'])
@@ -470,13 +580,14 @@ class AnnotationSubmission:
             response['msg'] += 'Please fill in the annotation field'     
         # Now attempt to save to the database
         if response['code'] != 'KO':
-            dbresp = self.model.create_annotation(nid, timecode, annotation)
+            dbresp = self.model.create_annotation(nid, uid, timecode, annotation)
             if dbresp['code'] == 'KO':
                 response['code'] = 'KO'
                 response['msg'] = 'DB Error: '+dbresp['msg']
             else:
-                response['msg'] = 'A new annotation has been submitted'    
+                response['msg'] = dbresp['msg']    
         data['altresponse'] = json.dumps(response)
+        cherrypy.response.headers['Content-Type']= 'text/html' 
         return data
  
 #========= THE MAIN UPLOAD FORM ============================================#

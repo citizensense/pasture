@@ -106,8 +106,9 @@ class WebService(object):
         return data
     
     # Write changes
-    def PUT(self, another_string):
-        cherrypy.session['mystring'] = "PUT:"+another_string
+    @cherrypy.tools.accept(media='text/plain')  
+    def PUT(self, data):
+        print("PUT:"+data)
     
     def MESSAGES(self):
         jsonstr =  json.dumps(MSG)
@@ -129,10 +130,3 @@ class WebService(object):
                 else:
                     valid = 'Can only post ('+self.allowedfileuploads+') files.' 
         return valid
-
-class ExampleSession:
-    @cherrypy.expose
-    def default(self, param):
-        cherrypy.session['mystring'] = "test";
-        bob = cherrypy.session['mystring']
-        cherrypy.session.pop('mystring', None) 

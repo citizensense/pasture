@@ -186,3 +186,29 @@ label{
 .error{
     color:#CC0000; 
 }
+
+/* GRAPH */
+.addannotationform{
+	position:absolute;
+	top:20px;
+	right:20px;
+	width:400px;
+	padding:8px;
+	background:#fff;
+	border:1px solid #ccc;
+	z-index:1000;
+	display:none;
+}
+.addannotationform input, textarea{   
+	width:100%;
+}
+.chart_block{
+	position:relative;
+}
+.annoclose{
+	display:block;
+	text-align:right;
+}
+.anoedit{
+	float:right;
+}

@@ -90,6 +90,7 @@ class Database:
             self.db.commit()
             return myid
         except Exception as e:
+            # TODO: Return the error message, not just false..
             self.msg += '\n'+str(e) 
             return False
     
