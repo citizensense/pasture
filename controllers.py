@@ -55,29 +55,35 @@ class WebService(object):
         return "0:"+path0+' 1:'+path1+' 2:'+path2
 
     # Response to a DELETE request   
-    def DELETE(self, *vpath):
+    def DELETE(self, *vpath, **kwargs):
+        print('============DELETE=============')
+        print(vpath)
         model = Model();
         #cherrypy.session.pop('mystring', None)
+        #TODO: Could be much neater!
         path0=path1=''
         pathlen = len(vpath)
         user = ''
         passw = ''
         if pathlen >= 1:path0 = vpath[0] 
-        if pathlen >= 2:nid = vpath[1]
+        if pathlen >= 2:anid = vpath[1]
         if pathlen >= 3:user = vpath[2]   
         if pathlen >= 4:passw = vpath[3]   
         # Move a folder to the 'dustbin' directory
         response = {"success":{},"errors":{}}
         if path0 == 'deletenode':
-            response = model.delete_node(response, nid, user, passw)
-        else:    
+            response = model.delete_node(response, anid, user, passw)
+        elif path0=='delete' and anid== 'annotation':
+            data = {'username':vpath[3], 'password':vpath[4], 'sessionid':''}
+            response = model.delete_annotation(vpath[2], data)    
+        else:
             response['errors']['DELETE'] = 'Unrecognised command'
         return json.dumps(response)
 
     # Response to a POST
     def POST(self, *args, **kwargs):
         # Initialise our data structure
-        model = Model();  
+        model = Model()  
         dbstruct = model.database_structure()
         # Grab the database fields and zero the values
         dbfields = model.grab_dbfields()
@@ -101,20 +107,43 @@ class WebService(object):
         # Parse the POST submission and determin what to do with the data
         data = model.parse_submission(data)
         # Issue a response to the POST
-        print('\n===RETURN JSON ====================')
+        print('\n===POST RESPONSE ====================')
         print(data)
         return data
     
-    # Write changes
-    @cherrypy.tools.accept(media='text/plain')  
-    def PUT(self, data):
-        print("PUT:"+data)
+    # Write changes 
+    def PUT(self, *path, **data):
+        print('\n===PUT====================') 
+        model = Model();
+        # Checking for the following kind of URL: update/annotation/23
+        command = self.grab(path, 0)
+        target = self.grab(path, 1)
+        targetid = self.grab(path, 2)
+        url = '/api/{}/{}/{}'.format(command, target, targetid)
+        # Check we have all three vars and that this is an update command
+        if command and target and targetid and command=='update':
+            # Shall we update the annotation?
+            if target=='annotation':
+                resp = model.update_annotation(targetid, data)
+                response = json.dumps(resp)
+        else:
+            cherrypy.response.headers['Content-Type']= 'text/json' 
+            resp = {'code':'KO', 'msg':'Error updating: Incomplete or invalid URL\n{}'.format(url)} 
+            response = json.dumps(resp)
+        return response
     
     def MESSAGES(self):
         jsonstr =  json.dumps(MSG)
         MSG.clear()
         return jsonstr
     
+    def grab(self, array, index):
+        try:
+            var=array[index]
+        except: 
+            var=False
+        return var
+
     # Validate a POST/GET variable
     def VALID(self, var, vartype=''):
         valid = False

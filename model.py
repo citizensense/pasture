@@ -115,13 +115,6 @@ class Model:
         return json.dumps(data)
     
     # CREATE A NEW ANNOTATION
-    # sqlite> CREATE TABLE annotations(
-    #         aid INTEGER PRIMARY KEY,
-    #         nid INTEGER NOT NULL, 
-    #         timestamp INTEGER NOT NULL,
-    #         uid INTEGER NOT NULL, 
-    #         text TEXT NOT NULL
-    # );
     def create_annotation(self, nid, uid, timestamp, text):
         # And construct the ordered dict ready for the database
         newannotation = OrderedDict([
@@ -136,7 +129,96 @@ class Model:
         else:
             response['code'] = 'OK'
             response['msg'] = 'Annotation #{0} has been saved'.format(aid)
+        response['timestamp'] = timestamp;
+        response['aid'] = aid; 
         return response
+    
+    # UPDATE AN EXISTING ANNOTATION
+    def update_annotation(self, aid, data):
+        resp = {'code':'KO', 'msg':'', 'aid':aid}
+        # Lets check we have valid variables
+        try:
+            text = data['annotation']
+            user = data['username']
+            passwd = data['password']
+            sessionid = data['sessionid'] 
+        except:
+            resp['msg'] = 'Error: Can\'t find one of:\n annotation OR username OR password OR sessionid'
+            return resp
+        # Then check if we have permission to update
+        user = self.validuser(user, passwd, sessionid)
+        if user:
+            uid = user['uid'] 
+            resp['sessionid'] = user['sessionid']
+        else:
+            resp['msg'] = 'This username/password combination has not been recognised. Or you may have been automatically logged out. Please try again.'
+            resp['sessionid'] = ''
+            return resp
+        # And check if this specific user can update this specific annotation
+        anno = self.view_annotation(aid)
+        if anno['uid'] is not user['uid'] and user['permissions'] is not 'admin':
+            resp['msg'] = 'Sorry. this user cannot update this annotation.'
+            return resp
+        # Then finaly make the database call 
+        toupdate = {'text':text}
+        dbresp = self.db.update('annotations', 'aid', aid, toupdate)
+        if dbresp:
+            resp['code'] = 'OK'
+            resp['msg'] = 'Success! The annotation has been updated.'
+        else:
+            resp['code'] = 'KO'
+            resp['msg'] = 'Database Error: '.format(self.db.msg)
+        return resp
+
+    # DELETE AN ANNOTATION
+    def delete_annotation(self, aid, data):
+        print(data)
+        resp = {'code':'KO','msg':''}
+        user = self.validuser(data['username'], data['password'], data['sessionid'] )  
+        print(user)  
+        # Check if this user can delete this node
+        if user['permissions'] is 'admin':
+            candelete = True
+        # Check if the user owns the marker
+        else:
+            searchfor = {'uid':user['uid'], 'aid':aid}
+            intable = 'annotations'
+            returnfields = ['aid']
+            anno = self.db.searchfor(intable, returnfields, searchfor)
+            print(self.db.msg)
+            if anno is not None:
+                candelete = True
+            else:
+                response['msg'] = 'This annotation was created by another user. You do not have permission to delete it.'
+                return response
+        # Ok can we now delete please?
+        if candelete:
+            db = self.db.dbquery('DELETE FROM annotations WHERE aid={}'.format(int(aid)) )
+            if db is not False:
+                resp['code'] = 'OK'
+                resp['msg'] = 'Deleted annotation'
+            else:
+                resp['msg'] = 'Database Error:\n {}'.format(self.db.msg) 
+            # Update the database
+        #return response
+        return resp
+
+
+    # View a single annotation
+    def view_annotation(self, aid):
+        fields = ['aid', 'uid']
+        searchfor = {'aid':aid}
+        intable = 'annotations'
+        returnfields = ['aid', 'uid'] 
+        row = self.db.searchfor(intable, returnfields, searchfor)
+        resp = {}
+        if row:
+            # TODO: This shoudl be moved into database.py
+            resp['aid'] = row[0]
+            resp['uid'] = row[1]
+        else:
+            resp = row
+        return resp
 
     # CREATE A NEW NODE
     def create_node(self, data):
@@ -257,7 +339,7 @@ class Model:
                 vals = row[1].split(',')
                 # Create a timestamp
                 timestamp = int(vals[0]) #+timeadjcalc
-                rowdatetime = vals[0]+' | '+datetime.datetime.fromtimestamp(timestamp).strftime('%d %b %Y %H:%M:%S ({}GMT)'.format(timeadj))
+                rowdatetime = datetime.datetime.fromtimestamp(timestamp+timeadjcalc).strftime('%d %b %Y %H:%M:%S ({}GMT)'.format(timeadj))
                 #rowdatetime += '<br />'+datetime.datetime.fromtimestamp(int(vals[0])).strftime('%d %b %Y %H:%M:%S')
                 vals[0] = rowdatetime
                 if i == 0: starttime = rowdatetime
@@ -290,109 +372,6 @@ class Model:
             header += '<strong>{}</strong> | <strong>View</strong> {} Points <strong> From:</strong> {} <strong>To:</strong> {} | <strong>{}</strong>'.format(prevlink, count, rowdatetime, starttime,  nextlink)
             templatevars = {'nid':nid,'table':table, 'header':header, 'jsdata':jsdata, 'timeadj':timeadj, 'annotationsjson':annotationsjson}
             return template.render(var=templatevars)  
-        else: 
-            return 'No data'
-        #except Exception as e:
-        #    return 'error: '+str(e)
-
- 
-    # VIEW AN INDIVIDUAL as an HTML table
-    def view_node_htmlOLD(aself, nid):
-        # TODO: Move view code out of model
-        ENV = Environment(loader=PackageLoader('controllers', 'templates')) 
-        template = ENV.get_template('data.html') 
-        # Setup some base variables
-        ENV = Environment(loader=PackageLoader('controllers', 'templates')) 
-        fields = ['datatype', 'apikey', 'title', 'description', 'lat', 'lon', 
-                  'createdhuman', 'updated', 'latest', 'nid', 'createdby']
-        timeadj = int(self.kwargs['timeadj']) if 'timeadj' in self.kwargs else 0 
-        timeadjcalc = (timeadj*60)*60 # Timestamp adjustment for local time
-        count = int(self.kwargs['count']) if 'count' in self.kwargs else 3000
-        if count > 12000: count = 12000
-        countfrom = int(self.kwargs['from']) if 'from' in self.kwargs else 0
-        if countfrom < 0: countfrom = 0
-        # Now make the query
-        #try:
-        jsonstr = self.db.readasjson('nodes', fields, [int(nid)])  
-        if jsonstr: 
-            data = json.loads(jsonstr)
-            node = data[0]
-            graph = []
-            # TODO This code is a temp fix and should be removed as the submission should be consistant across all datatypes
-            if node['datatype'] == 'speck':
-                keyarr = ['timestamp', 'raw', 'concentration', 'humidity']
-                graph = {   'humidity':'humidity', 
-                            'concentration':'particles'
-                }          
-            else:
-                graph = {   ' NOppb':'NOppb', 
-                            ' O3ppb':'O3ppb',
-                            ' NO2ppb':'NO2ppb',
-                            ' PIDppm':'PIDppm'
-                }
-                node['latest']['csvheader']
-                keyarr = node['latest']['csvheader'].split(',')
-            if 'name' in node['latest']:
-                node['title'] = '{} [{}]'.format(node['title'], node['latest']['name'])
-            header = '<h2>{}: Created {}</h2><p>{}</p><hr />'.format(node['title'], node['createdhuman'], node['description'])
-            # Now bring back some actual data!
-            searchfor = {'nid':nid}
-            intable = 'csvs'
-            returnfields = ['created', 'csv']
-            sql = 'ORDER BY timestamp DESC LIMIT {}, {}'.format(countfrom, count) 
-            rows = self.db.searchfor(intable, returnfields, searchfor, sql, 'many')
-            # And prep vars used to format the output
-            table = '<table id="data"><tr><th>'
-            table += '</th><th>'.join(keyarr)+'</th></tr>\n\n\n'
-            starttime = ''
-            rowdatetime = ''
-            # Make a record of the position of the keys
-            graphpos = {}
-            for item in graph:
-                key = item
-                mapname = graph[item].replace(' ', '')
-                for position, findkey in enumerate(keyarr):
-                    if findkey == key:
-                        graphpos[key] = {'position':position,'color':"'#000'", 'data':[], 'name':"'{}'".format(mapname)}
-            i = 0
-            # Now loop through the data and generate data and json
-            for row in rows:
-                vals = row[1].split(',')
-                # Create a timestamp
-                timestamp = int(vals[0]) #+timeadjcalc
-                rowdatetime = vals[0]+' | '+datetime.datetime.fromtimestamp(timestamp).strftime('%d %b %Y %H:%M:%S ({}GMT)'.format(timeadj))
-                #rowdatetime += '<br />'+datetime.datetime.fromtimestamp(int(vals[0])).strftime('%d %b %Y %H:%M:%S')
-                vals[0] = rowdatetime
-                if i == 0: starttime = rowdatetime
-                # Prep the js
-                for key in graph:
-                    n = graphpos[key]['position']
-                    val = vals[n]
-                    if val.replace(' ', '') is not '':
-                        graphpos[key]['data'].append( {'x':timestamp, 'y':val} )
-                # Prep the HTML
-                line = '<tr><td>'
-                line += '</td><td>'.join(vals)
-                line += '</td></tr>'
-                table += line
-                i += 1
-            # Now prep the final output
-            data = []
-            for item in graphpos: data.append(graphpos[item])
-            jsondata = json.dumps(data)
-            jsdata = jsondata.replace('"', '') # Javscript formated data
-            jsdata = jsdata.replace(' ', '')
-            table += '</table>'
-            prevcount = countfrom-count
-            nextlink = '<a class="prevnext" href="/api/viewhtml/{}/?count={}&from={}&timeadj={}">Next&raquo;</a>'.format(nid, count, countfrom+count, timeadj)
-            if prevcount <= 0: 
-                prevcount=0
-                prevlink = ''
-            if countfrom > 0:
-                prevlink = '<a class="prevnext" href="/api/viewhtml/{}/?count={}&from={}&timeadj={}">&#171;Previous</a>'.format(nid, count, prevcount, timeadj)
-            header += '<strong>{}</strong> | <strong>View</strong> {} Points <strong> From:</strong> {} <strong>To:</strong> {} | <strong>{}</strong>'.format(prevlink, count, rowdatetime, starttime,  nextlink)
-            templatevars = {'nid':nid,'table':table, 'header':header, 'jsdata':jsdata, 'timeadj':timeadj}
-            return template.render(var=templatevars )  
         else: 
             return 'No data'
         #except Exception as e:
@@ -585,7 +564,9 @@ class AnnotationSubmission:
                 response['code'] = 'KO'
                 response['msg'] = 'DB Error: '+dbresp['msg']
             else:
-                response['msg'] = dbresp['msg']    
+                response['msg'] = dbresp['msg']  
+                response['aid'] = dbresp['aid']
+                response['timestamp'] =  dbresp['timestamp']  
         data['altresponse'] = json.dumps(response)
         cherrypy.response.headers['Content-Type']= 'text/html' 
         return data

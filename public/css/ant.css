@@ -208,7 +208,15 @@ label{
 .annoclose{
 	display:block;
 	text-align:right;
+	float:right;
 }
 .anoedit{
 	float:right;
 }
+.annodelete{
+	display:block;
+	text-align:left;
+	float:left;
+	background-color:;
+}
+

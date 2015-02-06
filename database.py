@@ -152,7 +152,17 @@ class Database:
         except Exception as e:
             self.msg += '\n'+str(e) 
             return False
- 
+
+    def dbquery(self, qry):
+        self.msg ="\n====database query() ===="  
+        try: 
+            cursor = self.db.cursor()   
+            cursor.execute(qry)
+            self.db.commit()   
+        except Exception as e:
+            self.msg += '\n'+str(e) 
+            return False  
+        
     # Search for a value and return the spec
     # TODO: Clean up this to return one or many
     def searchfor(self, intable, returnfields, searchfor, sql='', returnrows='one'):
