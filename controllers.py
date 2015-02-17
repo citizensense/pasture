@@ -63,18 +63,21 @@ class WebService(object):
         #TODO: Could be much neater!
         path0=path1=''
         pathlen = len(vpath)
-        user = ''
-        passw = ''
+        user = passw = sessionid = ''
         if pathlen >= 1:path0 = vpath[0] 
         if pathlen >= 2:anid = vpath[1]
         if pathlen >= 3:user = vpath[2]   
         if pathlen >= 4:passw = vpath[3]   
+        if pathlen >= 5:sessionid = vpath[4]   
         # Move a folder to the 'dustbin' directory
         response = {"success":{},"errors":{}}
         if path0 == 'deletenode':
             response = model.delete_node(response, anid, user, passw)
         elif path0=='delete' and anid== 'annotation':
-            data = {'username':vpath[3], 'password':vpath[4], 'sessionid':''}
+            user = vpath[3]
+            passw =  vpath[4]
+            if user == 'none' or passw == 'none':user=passw=''
+            data = {'username':user, 'password':passw, 'sessionid':sessionid}
             response = model.delete_annotation(vpath[2], data)    
         else:
             response['errors']['DELETE'] = 'Unrecognised command'

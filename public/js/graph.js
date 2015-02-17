@@ -92,13 +92,19 @@ var Graphkit = function (){
 				form.style.display = 'none';
 			},true);
 			// And the delete button button
+			// TODO: THIS IS BAD!! & Needs fixing ASAP
 			var deletebut = document.getElementById(_chartid+'_delete'); 
 			deletebut.addEventListener('click',function (e) {
 				var form = document.getElementById(_chartid+'_anoform');
 				var aid = document.getElementById(_chartid+'_update').value;
 				var username = document.getElementById(_chartid+'_username').value;
 				var password = document.getElementById(_chartid+'_password').value;
-				submitme('DELETE', '/api/delete/annotation/'+aid+'/'+username+'/'+password);
+				var sessionid = document.getElementById(_chartid+'_sessionid').value;
+				if(username=='' || password==''){
+					password='none'
+					username='none'
+				}
+				submitme('DELETE', '/api/delete/annotation/'+aid+'/'+username+'/'+password+'/'+sessionid);
 			},true);
 
 			// Now lets submit the form and override the default action

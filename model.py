@@ -58,7 +58,8 @@ class Model:
                 ('nid', 'INTEGER'), 
                 ('uid', 'INTEGER'),
                 ('timestamp', 'INTEGER'),
-                ('annotation', 'TEXT')
+                ('text', 'TEXT'),
+                ('created', 'INTEGER')
             ]),
             # This isn't created in the database, its just used for internal var storage
             # TODO: Pos get rid of this as its setup in the controller
@@ -117,9 +118,10 @@ class Model:
     # CREATE A NEW ANNOTATION
     def create_annotation(self, nid, uid, timestamp, text):
         # And construct the ordered dict ready for the database
+        created = int(time.time()) # ALTER TABLE annotations ADD COLUMN created INT;
         newannotation = OrderedDict([
-            ('fieldnames',['nid', 'uid', 'timestamp', 'text']),
-            ('values',[[nid, uid, timestamp, text]])  
+            ('fieldnames',['nid', 'uid', 'timestamp', 'text', 'created']),
+            ('values',[[nid, uid, timestamp, text, created]])  
         ]) 
         aid = self.db.create('annotations', newannotation)
         response = {}
@@ -172,12 +174,16 @@ class Model:
 
     # DELETE AN ANNOTATION
     def delete_annotation(self, aid, data):
-        print(data)
+        #print(data)
         resp = {'code':'KO','msg':''}
         user = self.validuser(data['username'], data['password'], data['sessionid'] )  
-        print(user)  
+        #print('====USER=====')
+        #print(user)  
         # Check if this user can delete this node
-        if user['permissions'] is 'admin':
+        if user == False:
+            resp['msg'] = 'User not recognised. Try refreshing the page.'
+            candelete = False
+        elif user['permissions'] is 'admin':
             candelete = True
         # Check if the user owns the marker
         else:
@@ -202,8 +208,7 @@ class Model:
             # Update the database
         #return response
         return resp
-
-
+    
     # View a single annotation
     def view_annotation(self, aid):
         fields = ['aid', 'uid']
@@ -316,12 +321,19 @@ class Model:
             returnfields = ['created', 'csv']
             sql = 'ORDER BY timestamp DESC LIMIT {}, {}'.format(countfrom, count) 
             rows = self.db.searchfor(intable, returnfields, searchfor, sql, 'many')
-            # And grab a list of annotations
-            sql = 'ORDER BY timestamp DESC LIMIT {}, {}'.format(countfrom, count) 
-            annotations = self.db.searchfor('annotations', ['aid','timestamp','text'], {'nid':nid}, sql, 'many')
+            # And grab a list of annotations: TODO: Think about limits i.e. sql = 'ORDER BY timestamp DESC LIMIT {}, {}'.format(countfrom, count) 
+            sql = 'ORDER BY timestamp DESC '
+            annotations = self.db.searchfor('annotations', ['aid','timestamp','text', 'nid'], {'nid':nid}, sql, 'many')
+            i=0
+            for ano in annotations:
+                timestamp = int(ano[1]+timeadjcalc)
+                print(timestamp)
+                mydate = datetime.datetime.fromtimestamp(timestamp).strftime('%d %b %Y %H:%M:%S ({}GMT)'.format(timeadj))
+                annotations[i] = (ano[0], ano[1], ano[2], mydate, ano[3])
+                i+=1
             annotationsjson = json.dumps(annotations)
             # And prep vars used to format the output
-            table = '<table id="data"><tr><th>'
+            table = '<table class="whitetable"><tr><th>'
             table += '</th><th>'.join(keyarr)+'</th></tr>\n\n\n'
             starttime = ''
             rowdatetime = ''
@@ -340,7 +352,6 @@ class Model:
                 # Create a timestamp
                 timestamp = int(vals[0]) #+timeadjcalc
                 rowdatetime = datetime.datetime.fromtimestamp(timestamp+timeadjcalc).strftime('%d %b %Y %H:%M:%S ({}GMT)'.format(timeadj))
-                #rowdatetime += '<br />'+datetime.datetime.fromtimestamp(int(vals[0])).strftime('%d %b %Y %H:%M:%S')
                 vals[0] = rowdatetime
                 if i == 0: starttime = rowdatetime
                 # Prep the js
@@ -355,6 +366,7 @@ class Model:
                 line += '</td></tr>'
                 table += line
                 i += 1
+                # TODO: Prep the array for the jinja template
             # Now prep the final output
             data = []
             for item in graphpos: data.append(graphpos[item])
@@ -370,7 +382,7 @@ class Model:
             if countfrom > 0:
                 prevlink = '<a class="prevnext" href="/api/viewhtml/{}/?count={}&from={}&timeadj={}">&#171;Previous</a>'.format(nid, count, prevcount, timeadj)
             header += '<strong>{}</strong> | <strong>View</strong> {} Points <strong> From:</strong> {} <strong>To:</strong> {} | <strong>{}</strong>'.format(prevlink, count, rowdatetime, starttime,  nextlink)
-            templatevars = {'nid':nid,'table':table, 'header':header, 'jsdata':jsdata, 'timeadj':timeadj, 'annotationsjson':annotationsjson}
+            templatevars = {'nid':nid,'table':table, 'header':header, 'jsdata':jsdata, 'timeadj':timeadj, 'annotationsjson':annotationsjson, 'annotations':annotations}
             return template.render(var=templatevars)  
         else: 
             return 'No data'

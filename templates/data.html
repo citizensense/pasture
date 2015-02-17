@@ -35,11 +35,11 @@
             padding:0px 10px;
             padding-top:10px; 
         }
-        #data{
+        .whitetable{
             background:#FCFCFC;
             margin-right:10px;   
         }
-        #data td, #data th {
+        .whitetable td, .whitetable th {
             border:1px solid #ccc;   
             padding:1px 5px;
         }
@@ -69,6 +69,13 @@
         a:link.prevnext{
             color:#2E4C1F;
         }
+		.floatleft{
+			float:left;
+		}
+		.blockheader{
+			margin:0px;
+			margin-top:20px;
+		}
     </style>
 </head>
 <body>
@@ -77,11 +84,21 @@
 
 <div id="maincontent">
 	<h3>Graph</h3>  
-	<div id="charts">
-	</div>
+	<div id="charts"> </div>
 
-<h3>Data</h3>
-{{ var['table'] }}
+	<div class="floatleft">
+		<h3 class="blockheader">Data</h3>
+		{{ var['table'] }}
+	</div>
+	<div class="floatfleft">
+		<h3 class="blockheader">Annotations</h3>
+		<table class="whitetable">
+			<tr><th>Time</th></th><th>Text</th></tr>
+			    {% for annotation in var['annotations']  %}
+				<tr><td>{{ annotation[3] }}</td><td>{{ annotation[2] }}</td></tr>
+				{% endfor %}
+		</table>
+	</div>
 </div> 
 
 <script src="/public/js/jquery.min.js"></script>
