@@ -148,11 +148,12 @@
 	//] 
 	timeadj = {{ var['timeadj'] }}; 
     data = {{ var['jsdata'] }};
-	
+	//data = [{color:'#000',data:[{y:0,x:100},{y:71,x:200},{y:50,x:300},{y:100,x:1000}]}];
 	annotations = {{ var['annotationsjson'] }}; 
-    // Create a new graph with a specified ID within a div called charts
-	var mygraph = new Graphkit('chart{{ var['nid'] }}' , 250);  // id, height
-    mygraph.build(data, annotations, timeadj); // The data
+    //annotations = []; 
+	// Create a new graph with a specified ID within a div called charts
+	var mygraph = new Graphkit('chart{{ var['nid'] }}' , 250);  // id, height, reverse
+    mygraph.build(data, annotations, timeadj, true); // The data
     //mygraph.testdata();
 
 </script>

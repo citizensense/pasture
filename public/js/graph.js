@@ -21,12 +21,43 @@ var Graphkit = function (){
 		var _sublock;
 		var _thedata
 		var _timeadj;
+		var _xreverse=false;
 
 		// PUBLIC METHODS: this.publicMethod = function() {};
-		this.build = function (data, annotations, timeadj){
+		this.build = function (data, annotations, timeadj, reverse){
 			_annotations = annotations;
 			_thedata = data;
 		    _timeadj = timeadj;
+		    _xreverse = reverse;
+		    // Do we need to reverse the xaxis data?
+		    if(_xreverse){
+		    	_reverselookup = {};
+		    	_maxx = 0;
+		    	for (var i = 0; i < _thedata.length; i++) {
+		    		var len = _thedata[i]['data'].length; 
+					if(_thedata[i]['data'][len-1]['x']>_maxx){
+						_maxx = _thedata[i]['data'][len-1]['x'];
+					}
+		    	}
+		    	for (var i = 0; i < _thedata.length; i++) {
+		    		var len = _thedata[i]['data'].length;
+		    		var newdata = [];
+		    		//console.log(_thedata[i]['data']);
+		    		//console.log('MAX: '+_maxx);
+					for (ii = 0; ii < len; ii++) {
+						var lr = len-ii-1
+						a = 'Y:'+_thedata[i]['data'][ii]['y']+' YINV:'+_thedata[i]['data'][lr]['y'];
+						b = 'X:'+_thedata[i]['data'][ii]['x']+' Xinv:'+(_maxx-_thedata[i]['data'][lr]['x']);
+						//console.log(a+' '+b);
+						newdata[ii] = {x:0, y:0};
+						newdata[ii]['y'] = _thedata[i]['data'][len-ii-1]['y'];
+						newdata[ii]['x'] = _maxx-_thedata[i]['data'][lr]['x'];
+						_reverselookup[newdata[ii]['x']] = _thedata[i]['data'][lr]['x']; 
+					}
+					//console.log(newdata);
+					_thedata[i]['data'] = newdata;
+				}
+		    }
 		    // Colorise the lines
 		    for (i = 0; i < data.length; i++) {
                 data[i]['color'] = _palette.color(); 
@@ -315,38 +346,46 @@ var Graphkit = function (){
 			_graph.render();
 		}
 		var buildui = function (){			
-			_preview = new Rickshaw.Graph.RangeSlider( { 
+			/*_preview = new Rickshaw.Graph.RangeSlider( { 
 				graph: _graph,
 				element: document.getElementById(_chartid+'_preview'),
-			} );
+			} );*/
 			document.getElementById(_chartid+"_preview").style.width = "96%";
 			document.getElementById(_chartid+"_preview").style.marginRight = "2%";
 			document.getElementById(_chartid+"_preview").style.marginLeft = "2%";  
 			var hoverDetail = new Rickshaw.Graph.HoverDetail( {
 				graph: _graph,
 				xFormatter: function(x) {
-					timecode = x * 1000;
+					if(_xreverse){
+						x = _reverselookup[x];
+					}
+					var timecode = x * 1000;
 					_hoverpos = x;
 					adj = ((_timeadj*60)*60)*1000;
 					timeadj = timecode+adj;
 					dateobj = new Date(timeadj);
 					date = dateobj.toUTCString();
-					return date;
+					return date+_timeadj;
 				}
 			} );
+			// Add annotations to the graph
 			annotator = new Rickshaw.Graph.Annotate( {
 				graph: _graph,
 				element: document.getElementById(_chartid+'_timeline')
 			} );
-			// Add annotations to the graph
 			for (i = 0; i < _annotations.length; i++) {
 				var aid = _annotations[i][0];
-				var timestamp = _annotations[i][1];  
+				if(_xreverse){
+					var timestamp = _maxx-_annotations[i][1];  
+				}else{
+					var timestamp = _annotations[i][1];
+				}
 				var text = _annotations[i][2];
 				var content = annocontent(aid, text);
 				annotator.add(timestamp, content);
 			}
 			annotator.update();
+			/*The tick box show/hide buttons */
 			var legend = new Rickshaw.Graph.Legend( {
 				graph: _graph,
 				element: document.getElementById(_chartid+'_legend')
@@ -356,32 +395,33 @@ var Graphkit = function (){
 				graph: _graph,
 				legend: legend
 			} );
-			var order = new Rickshaw.Graph.Behavior.Series.Order( {
+			/*var order = new Rickshaw.Graph.Behavior.Series.Order( {
 				graph: _graph,
 				legend: legend
-			} );
+			} );*/
 			var highlighter = new Rickshaw.Graph.Behavior.Series.Highlight( {
 				graph: _graph,
 				legend: legend
 			} );
-			var smoother = new Rickshaw.Graph.Smoother( {
+			/* var smoother = new Rickshaw.Graph.Smoother( {
 				graph: _graph,
 				element: document.querySelector('#smoother')
-			} );
+			} );*/
+			// Old x axis
 			var ticksTreatment = '';
-			var xAxis = new Rickshaw.Graph.Axis.Time( {
+			var xAxis = new Rickshaw.Graph.Axis.Time( { /* .Time */
 				graph: _graph,
 				ticksTreatment: ticksTreatment,
 				timeFixture: new Rickshaw.Fixtures.Time.Local()
 			} );
-			xAxis.render();
+			//xAxis.render();
 			var yAxis = new Rickshaw.Graph.Axis.Y( {
 				graph: _graph,
 				tickFormat: Rickshaw.Fixtures.Number.formatKMBT,
 				ticksTreatment: ticksTreatment
 			} );
 			yAxis.render();
-			var controls = new RenderControls( {
+			/*var controls = new RenderControls( {
 				element: document.querySelector('form'),
 				graph: _graph
 			} );

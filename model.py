@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-import cherrypy, json, csv, re, time, datetime, uuid, os, sys,string, subprocess
+import cherrypy, json, csv, re, time, datetime, uuid, os, sys,string, subprocess, arrow
 from collections import OrderedDict
 from database import *
 # TODO: Remove this from model & keep in view..
@@ -351,7 +351,9 @@ class Model:
                 vals = row[1].split(',')
                 # Create a timestamp
                 timestamp = int(vals[0]) #+timeadjcalc
-                rowdatetime = datetime.datetime.fromtimestamp(timestamp+timeadjcalc).strftime('%d %b %Y %H:%M:%S ({}GMT)'.format(timeadj))
+                time = arrow.get(timestamp)
+                local = time.to('US/Central')
+                rowdatetime = local.format('YYYY-MM-DD HH:mm:ss')
                 vals[0] = rowdatetime
                 if i == 0: starttime = rowdatetime
                 # Prep the js
