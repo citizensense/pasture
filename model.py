@@ -319,7 +319,7 @@ class Model:
             searchfor = {'nid':nid}
             intable = 'csvs'
             returnfields = ['created', 'csv']
-            sql = 'ORDER BY timestamp DESC LIMIT {}, {}'.format(countfrom, count) 
+            sql = 'ORDER BY timestamp ASC LIMIT {}, {}'.format(countfrom, count) 
             rows = self.db.searchfor(intable, returnfields, searchfor, sql, 'many')
             # And grab a list of annotations: TODO: Think about limits i.e. sql = 'ORDER BY timestamp DESC LIMIT {}, {}'.format(countfrom, count) 
             sql = 'ORDER BY timestamp DESC '

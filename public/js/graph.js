@@ -112,7 +112,7 @@ var Graphkit = function (){
 				var dateobj = new Date(_hoverpos*1000);
 				var date = dateobj.toUTCString();
 				document.getElementById(_chartid+'_update').value = ''; 
-				formbutton.value = 'Create annotation for:\n'+date;
+				formbutton.value = 'Create Annotation';//\n'+date;
 			},true);
 			// Create click event off the edit button
 			armeditlinks();
@@ -411,8 +411,8 @@ var Graphkit = function (){
 			var ticksTreatment = '';
 			var xAxis = new Rickshaw.Graph.Axis.Time( { /* .Time */
 				graph: _graph,
-				ticksTreatment: ticksTreatment,
-				timeFixture: new Rickshaw.Fixtures.Time.Local()
+				ticksTreatment: ticksTreatment//,
+				//timeFixture: new Rickshaw.Fixtures.Time.Local()
 			} );
 			//xAxis.render();
 			var yAxis = new Rickshaw.Graph.Axis.Y( {
