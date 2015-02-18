@@ -20,6 +20,11 @@ http://localhost:8787
 ## The API
 More information coming soon...
 
+## Requirments
+arrow
+jinja
+cherry.py
+
 ## The project team:
 Jennifer Gabrys, Principal Investigator
 
