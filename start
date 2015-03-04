@@ -1,0 +1,14 @@
+# Make sure this script is runs as root so processes started by systemd can be killed
+LUID=$(id -u)
+if [ $LUID -ne 0 ]; then
+        echo "$0 must be run as root"
+        exit 1
+fi
+
+N=$(ps aux | grep app.py | grep -v grep)
+if [ ! -z "$N" ]; then
+        ps aux | grep app.py | awk '{ print $2}' | xargs kill -9
+fi
+
+./app.py > /dev/null &
+
