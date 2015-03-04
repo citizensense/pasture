@@ -9,7 +9,11 @@ rows = db.dbselectquery("SELECT timestamp, csv, cid FROM csvs WHERE timestamp is
 print(db.msg)
 
 # Now loop through the data and generate data and json
+<<<<<<< HEAD
 i=n=1
+=======
+i=1
+>>>>>>> b20e440dcc59c41eecbcd16853ace34795371a19
 for row in rows:
     vals = row[1].split(',')
     emptytimestamp = row[0]
@@ -17,6 +21,7 @@ for row in rows:
     cid = row[2]
     csv = row[1]
     # Now lets update the database with the new timestamp
+<<<<<<< HEAD
     toupdate = {'timestamp':realtimestamp}
     dbresp = db.update('csvs', 'cid', cid, toupdate)
     if dbresp:
@@ -27,6 +32,15 @@ for row in rows:
         print('Unable to update:{}'.format(cid))
     #print(i)
     n=n+1
+=======
+    #toupdate = {'timestamp':realtimestamp}
+    #dbresp = db.update('csvs', 'cid', cid, toupdate)
+    #if dbresp:
+        #print(cid)
+    print('{} | {} | {} | {}'.format(cid, emptytimestamp, realtimestamp, csv)) 
+    #else:
+    #    print('Unable to update:{}'.format(cid))
+>>>>>>> b20e440dcc59c41eecbcd16853ace34795371a19
     i=i+1
 print('Rows updated:{}'.format(i))
 

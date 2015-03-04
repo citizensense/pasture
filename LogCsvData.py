@@ -70,9 +70,9 @@ if __name__ == "__main__":
     val3 = 'aaa'
     csv = time+','+val1+','+val2+','+val3
     # Log the data
-    if save.log('data/data.csv', header, csv):
-        print('Saved to data.csv')
+    if save.log('data/yourfile.csv', header, csv):
+        print('Saved to yourfile.csv')
     # Save the latest
-    if save.savelatest('data/latest.csv', header, csv):
-        print('Saved to latest.json')
+    if save.savelatest('data/someotherfile.csv', header, csv):
+        print('Saved to someotherfile.json')
 

@@ -17,7 +17,7 @@ def get_config():
     CONFIG = config.init()
     cherrypy.config.update({
         'server.socket_host': '0.0.0.0',
-        'server.socket_port': 8787,
+        'server.socket_port': CONFIG['SERVERPORT'],
         'server.max_request_body_size':416000000,
         'datadir': 'data',
         'dustbin': 'dustbin',
