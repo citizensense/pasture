@@ -782,14 +782,17 @@ class SpecGatewaySubmission:
         # Create a csv header
         headerlist = ['timestamp']+speckchannels
         csvheader = ','.join(headerlist)
+        csvheader = '#MARKER_ID:{}\n{}'.format(nid,csvheader)
         # Create the csv value strings
         csvstrlist = []
         csvvaluelist = []
-        timestamp  = int(time.time()) 
+        created  = int(time.time()) 
         for x in speckdata:
             csvline =  ','.join(map(str, x))
             csvstrlist.append(csvline)
-            csvvaluelist.append([nid, timestamp, csvheader, csvline])
+            timestamp = x[0]
+            print('{}: {}'.format(timestamp, csvline))
+            csvvaluelist.append([nid, timestamp, created, csvheader, csvline])
         csvstring = '\n'.join(csvstrlist)
         
         # Now try and save the data to file
@@ -800,7 +803,8 @@ class SpecGatewaySubmission:
             # Check we have a folder
             cherrypy.config['datalogger'].createDir(directory)
             # Now save the file
-            cherrypy.config['datalogger'].log(directory+'/data.csv', csvheader, csvstring)
+            myfile = '{0}/{1}.csv'.format(directory, nid)
+            cherrypy.config['datalogger'].log(myfile, csvheader, csvstring)
         except Exception as e: 
             data['altresponse'] = '{"result":"KO","message":"Unable to save speck data to file"}'
             return data
@@ -821,9 +825,9 @@ class SpecGatewaySubmission:
         model.db.update('nodes', 'nid', nid, {'latest':lateststr, 'updated':int(time.time())})
         print(model.db.msg)
         
-        # And save a copy of the csv in the database for safety
+        # And save a copy of the csv in the database (should seperate into seperate fields...)
         newcsvs = OrderedDict([
-            ('fieldnames',['nid', 'created', 'header', 'csv']),
+            ('fieldnames',['nid', 'timestamp', 'created', 'header', 'csv']),
             ('values', csvvaluelist)  
         ]) 
         resp = model.db.create('csvs', newcsvs)
@@ -845,7 +849,7 @@ class CitizenSenseKitSubmission:
         if model.match_keys(expected, submitted) is not True:    # We got a csk submission
             return False
         
-        # Check if this is a know MAC address
+        # Check if this is a known MAC address
         if data['submitted']['MAC'] not in cherrypy.config['CONFIG']['MACS']:
             data['altresponse'] = '{"success":"KO", "errors":[{"MAC":"MAC not recognised"}]}'
             return data
@@ -928,13 +932,14 @@ class CitizenSenseKitSubmission:
         # Now try and save the data to file
         csvheader = ','.join(keys)
         csvvalues = '\n'.join(rows)
+        csvheader = '#MARKER_ID:{}\n{}'.format(nid,csvheader)
         try:
             directory = 'data/csvs/'+str(nid)
             # Check we have a folder
             cherrypy.config['datalogger'].createDir(directory)
             # Now save the file
-            # TODO: Its wrong to save the header everytime. Create a seperate 'headers' table
-            cherrypy.config['datalogger'].log(directory+'/data.csv', csvheader, csvvalues)
+            myfile = '{}/{}.csv'.format(directory, nid)
+            cherrypy.config['datalogger'].log(myfile, csvheader, csvvalues)
             print('Save to file: Sucess')
         except Exception as e: 
             print('Couldn\'t save data to file')

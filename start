@@ -1,0 +1,22 @@
+#!/bin/bash
+# Make sure this script is runs as root so any processes started by systemd can be killed
+#LUID=$(id -u)
+#if [ $LUID -ne 0 ]; then
+#        echo "$0 must be run as root"
+#        exit 1
+#fi
+
+# Function to find all processes and kill them
+KillProcess () {
+    N=$(ps aux | grep $1 | grep -v grep)
+    if [ ! -z "$N" ]; then
+        ps aux | grep $1 | awk '{ print $2}' | xargs kill -9
+    fi
+}
+
+# Kill all running processes
+KillProcess pasture
+
+# And start the process
+./pasture > /dev/null &
+

@@ -126,7 +126,19 @@ class Database:
         #except Exception as e:
             self.msg += '\n'+str(e)
             return False
-    
+     
+    # 
+    def dbselectquery(self, qry):
+        self.msg ="\n====database query() ===="  
+        try: 
+            cursor = self.db.cursor()   
+            cursor.execute(qry)
+            self.msg += '\n{}'.format(qry)
+            return cursor 
+        except Exception as e:
+            self.msg += '\n'+str(e) 
+            return False  
+   
     # Update
     def update(self, table, idname, idval, fieldnvalues):
         self.msg ="\n====database update() ===="
