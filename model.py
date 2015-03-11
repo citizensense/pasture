@@ -298,18 +298,13 @@ class Model:
             data = json.loads(jsonstr)
             node = data[0]
             graph = []
-            # TODO This code is a temp fix and should be removed as the submission should be consistant across all datatypes
+            # Speck data display
             if node['datatype'] == 'speck':
                 keyarr = ['timestamp', 'raw', 'concentration', 'humidity']
-                graph = {   'humidity':'humidity', 
-                            'concentration':'particles'
-                }          
+                graph = {'humidity':'humidity','concentration':'particles'}          
+            # Frackbox display
             else:
-                graph = {   ' NOppb':'NOppb', 
-                            ' O3ppb':'O3ppb',
-                            ' NO2ppb':'NO2ppb',
-                            ' PIDppm':'PIDppm'
-                }
+                graph = {' NOppb':'NOppb', ' O3ppb':'O3ppb',' NO2ppb':'NO2ppb',' PIDppm':'PIDppm'}
                 node['latest']['csvheader']
                 keyarr = node['latest']['csvheader'].split(',')
             if 'name' in node['latest']:
@@ -318,8 +313,8 @@ class Model:
             # Now bring back some actual data!
             searchfor = {'nid':nid}
             intable = 'csvs'
-            returnfields = ['created', 'csv']
-            sql = 'ORDER BY timestamp ASC LIMIT {}, {}'.format(countfrom, count) 
+            returnfields = ['timestamp', 'csv']
+            sql = 'ORDER BY timestamp DESC LIMIT {}, {}'.format(countfrom, count) 
             rows = self.db.searchfor(intable, returnfields, searchfor, sql, 'many')
             # And grab a list of annotations: TODO: Think about limits i.e. sql = 'ORDER BY timestamp DESC LIMIT {}, {}'.format(countfrom, count) 
             sql = 'ORDER BY timestamp DESC '
@@ -349,8 +344,8 @@ class Model:
                     if findkey == key:
                         graphpos[key] = {'position':position,'color':"'#000'", 'data':[], 'name':"'{}'".format(mapname)}
             i = 0
-            # Now loop through the data and generate data and json
-            for row in rows:
+            # Now loop through the data and generate data and json. The array is reversed to enable to graph to display
+            for row in reversed(rows):
                 vals = row[1].split(',')
                 # Create a timestamp
                 timestamp = int(vals[0]) #+timeadjcalc
@@ -371,7 +366,6 @@ class Model:
                 line += '</td></tr>'
                 table += line
                 i += 1
-                # TODO: Prep the array for the jinja template
             # Now prep the final output
             data = []
             for item in graphpos: data.append(graphpos[item])

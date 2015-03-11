@@ -16,9 +16,7 @@ KillProcess () {
 
 # Kill all running processes
 KillProcess pasture
-KillProcess test.py
 
 # And start the process
 ./pasture > /dev/null &
-#./test.py > /dev/null &
 
