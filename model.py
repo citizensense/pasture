@@ -325,13 +325,16 @@ class Model:
             sql = 'ORDER BY timestamp DESC '
             annotations = self.db.searchfor('annotations', ['aid','timestamp','text', 'nid'], {'nid':nid}, sql, 'many')
             i=0
-            for ano in annotations:
-                timestamp = int(ano[1]+timeadjcalc)
-                print(timestamp)
-                mydate = datetime.datetime.fromtimestamp(timestamp).strftime('%d %b %Y %H:%M:%S ({}GMT)'.format(timeadj))
-                annotations[i] = (ano[0], ano[1], ano[2], mydate, ano[3])
-                i+=1
-            annotationsjson = json.dumps(annotations)
+            try:
+                for ano in annotations:
+                    timestamp = int(ano[1]+timeadjcalc)
+                    print(timestamp)
+                    mydate = datetime.datetime.fromtimestamp(timestamp).strftime('%d %b %Y %H:%M:%S ({}GMT)'.format(timeadj))
+                    annotations[i] = (ano[0], ano[1], ano[2], mydate, ano[3])
+                    i+=1
+                annotationsjson = json.dumps(annotations)
+            except:
+                annotationsjson =  "[]"
             # And prep vars used to format the output
             table = '<table class="whitetable"><tr><th>'
             table += '</th><th>'.join(keyarr)+'</th></tr>\n\n\n'
