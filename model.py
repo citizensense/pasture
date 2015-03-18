@@ -303,10 +303,14 @@ class Model:
                 keyarr = ['timestamp', 'raw', 'concentration', 'humidity']
                 graph = {'humidity':'humidity','concentration':'particles'}          
             # Frackbox display
-            else:
+            elif node['datatype'] == 'frackbox':
                 graph = {' NOppb':'NOppb', ' O3ppb':'O3ppb',' NO2ppb':'NO2ppb',' PIDppm':'PIDppm'}
-                node['latest']['csvheader']
                 keyarr = node['latest']['csvheader'].split(',')
+            # Observation
+            else:
+                node['title'] = 'Observation:<br /> {}'.format(node['title'])
+                graph = {}
+                keyarr = []
             if 'name' in node['latest']:
                 node['title'] = '{} [{}]'.format(node['title'], node['latest']['name'])
             header = '<h2>{}: Created {}</h2><p>{}</p><hr />'.format(node['title'], node['createdhuman'], node['description'])
