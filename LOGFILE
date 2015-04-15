@@ -1,0 +1,84 @@
+INFO [04/15/2015 12:14:54 PM] 
+============APP STARTUP=====================
+DEBUG [04/15/2015 12:14:54 PM] Database structure:
+DEBUG [04/15/2015 12:14:54 PM] OrderedDict([('nodes', [('nid', 'INTEGER PRIMARY KEY'), ('apikey', 'TEXT unique'), ('created', 'INTEGER'), ('createdhuman', 'DATETIME DEFAULT CURRENT_TIMESTAMP'), ('updated', 'INTEGER'), ('title', 'TEXT'), ('csvfile', 'TEXT'), ('description', 'TEXT'), ('datatype', 'TEXT'), ('lat', 'REAL'), ('lon', 'REAL'), ('fuzzylatlon', 'TEXT'), ('tags', 'TEXT'), ('createdby', 'INTEGER'), ('submissiondata', 'JSON'), ('latest', 'JSON'), ('visible', 'INTEGER')]), ('csvs', [('cid', 'INTEGER PRIMARY KEY'), ('nid', 'INTEGER'), ('created', 'INTEGER'), ('header', 'TEXT'), ('timestamp', 'INTEGER'), ('csv', 'TEXT')]), ('annotations', [('aid', 'INTEGER PRIMARY KEY'), ('nid', 'INTEGER'), ('uid', 'INTEGER'), ('timestamp', 'INTEGER'), ('text', 'TEXT'), ('created', 'INTEGER')]), ('locals', {'submitted': {}, 'errors': {}, 'info': {}, 'path': [], 'altresponse': '', 'filestosave': [], 'body': '', 'success': {}})])
+INFO [04/15/2015 12:14:54 PM] Finished DB initialisation: 
+====--database build()=====
+SELECT * FROM sqlite_master WHERE type='table' AND name='nodes';
+Found a table/database so didn't recreate it
+
+SELECT * FROM sqlite_master WHERE type='table' AND name='csvs';
+Found a table/database so didn't recreate it
+
+SELECT * FROM sqlite_master WHERE type='table' AND name='annotations';
+Found a table/database so didn't recreate it
+
+INFO [04/15/2015 12:14:54 PM] [15/Apr/2015:12:14:54] ENGINE Listening for SIGUSR1.
+INFO [04/15/2015 12:14:54 PM] [15/Apr/2015:12:14:54] ENGINE Listening for SIGHUP.
+INFO [04/15/2015 12:14:54 PM] [15/Apr/2015:12:14:54] ENGINE Listening for SIGTERM.
+INFO [04/15/2015 12:14:54 PM] [15/Apr/2015:12:14:54] ENGINE Bus STARTING
+INFO [04/15/2015 12:14:54 PM] [15/Apr/2015:12:14:54] ENGINE Started monitor thread '_TimeoutMonitor'.
+INFO [04/15/2015 12:14:54 PM] [15/Apr/2015:12:14:54] ENGINE Started monitor thread 'Autoreloader'.
+INFO [04/15/2015 12:14:54 PM] [15/Apr/2015:12:14:54] ENGINE Serving on http://0.0.0.0:8787
+INFO [04/15/2015 12:14:54 PM] [15/Apr/2015:12:14:54] ENGINE Bus STARTED
+INFO [04/15/2015 12:15:02 PM] 127.0.0.1 - - [15/Apr/2015:12:15:02] "GET / HTTP/1.1" 200 29431 "" "Mozilla/5.0 (X11; Linux x86_64; rv:37.0) Gecko/20100101 Firefox/37.0"
+INFO [04/15/2015 12:15:02 PM] 127.0.0.1 - - [15/Apr/2015:12:15:02] "GET /public/css/pure-min.css HTTP/1.1" 304 - "http://frackbox.citizensense.net/" "Mozilla/5.0 (X11; Linux x86_64; rv:37.0) Gecko/20100101 Firefox/37.0"
+INFO [04/15/2015 12:15:02 PM] 127.0.0.1 - - [15/Apr/2015:12:15:02] "GET /public/css/jquery-ui.css HTTP/1.1" 304 - "http://frackbox.citizensense.net/" "Mozilla/5.0 (X11; Linux x86_64; rv:37.0) Gecko/20100101 Firefox/37.0"
+INFO [04/15/2015 12:15:02 PM] 127.0.0.1 - - [15/Apr/2015:12:15:02] "GET /public/css/ant.css HTTP/1.1" 304 - "http://frackbox.citizensense.net/" "Mozilla/5.0 (X11; Linux x86_64; rv:37.0) Gecko/20100101 Firefox/37.0"
+INFO [04/15/2015 12:15:02 PM] 127.0.0.1 - - [15/Apr/2015:12:15:02] "GET /public/js/jquery.min.js HTTP/1.1" 304 - "http://frackbox.citizensense.net/" "Mozilla/5.0 (X11; Linux x86_64; rv:37.0) Gecko/20100101 Firefox/37.0"
+INFO [04/15/2015 12:15:02 PM] 127.0.0.1 - - [15/Apr/2015:12:15:02] "GET /public/css/graph.css HTTP/1.1" 304 - "http://frackbox.citizensense.net/" "Mozilla/5.0 (X11; Linux x86_64; rv:37.0) Gecko/20100101 Firefox/37.0"
+INFO [04/15/2015 12:15:02 PM] 127.0.0.1 - - [15/Apr/2015:12:15:02] "GET /public/css/detail.css HTTP/1.1" 304 - "http://frackbox.citizensense.net/" "Mozilla/5.0 (X11; Linux x86_64; rv:37.0) Gecko/20100101 Firefox/37.0"
+INFO [04/15/2015 12:15:02 PM] 127.0.0.1 - - [15/Apr/2015:12:15:02] "GET /public/js/leaflet.js HTTP/1.1" 304 - "http://frackbox.citizensense.net/" "Mozilla/5.0 (X11; Linux x86_64; rv:37.0) Gecko/20100101 Firefox/37.0"
+INFO [04/15/2015 12:15:02 PM] 127.0.0.1 - - [15/Apr/2015:12:15:02] "GET /public/css/legend.css HTTP/1.1" 304 - "http://frackbox.citizensense.net/" "Mozilla/5.0 (X11; Linux x86_64; rv:37.0) Gecko/20100101 Firefox/37.0"
+INFO [04/15/2015 12:15:02 PM] 127.0.0.1 - - [15/Apr/2015:12:15:02] "GET /public/css/leaflet.css HTTP/1.1" 304 - "http://frackbox.citizensense.net/" "Mozilla/5.0 (X11; Linux x86_64; rv:37.0) Gecko/20100101 Firefox/37.0"
+INFO [04/15/2015 12:15:02 PM] 127.0.0.1 - - [15/Apr/2015:12:15:02] "GET /api/viewmarkers?_=1429096502863 HTTP/1.1" 200 53061 "http://frackbox.citizensense.net/" "Mozilla/5.0 (X11; Linux x86_64; rv:37.0) Gecko/20100101 Firefox/37.0"
+INFO [04/15/2015 12:15:03 PM] 127.0.0.1 - - [15/Apr/2015:12:15:03] "GET /public/images/27.gif HTTP/1.1" 304 - "http://frackbox.citizensense.net/" "Mozilla/5.0 (X11; Linux x86_64; rv:37.0) Gecko/20100101 Firefox/37.0"
+INFO [04/15/2015 12:15:03 PM] 127.0.0.1 - - [15/Apr/2015:12:15:03] "GET /public/images/30.gif HTTP/1.1" 304 - "http://frackbox.citizensense.net/" "Mozilla/5.0 (X11; Linux x86_64; rv:37.0) Gecko/20100101 Firefox/37.0"
+INFO [04/15/2015 12:15:03 PM] 127.0.0.1 - - [15/Apr/2015:12:15:03] "GET /public/images/shadow.png HTTP/1.1" 304 - "http://frackbox.citizensense.net/" "Mozilla/5.0 (X11; Linux x86_64; rv:37.0) Gecko/20100101 Firefox/37.0"
+INFO [04/15/2015 12:15:06 PM] 127.0.0.1 - - [15/Apr/2015:12:15:06] "GET / HTTP/1.1" 200 29431 "" "Mozilla/5.0 (X11; Linux x86_64; rv:37.0) Gecko/20100101 Firefox/37.0"
+INFO [04/15/2015 12:15:06 PM] 127.0.0.1 - - [15/Apr/2015:12:15:06] "GET /public/css/pure-min.css HTTP/1.1" 304 - "http://frackbox.citizensense.net/" "Mozilla/5.0 (X11; Linux x86_64; rv:37.0) Gecko/20100101 Firefox/37.0"
+INFO [04/15/2015 12:15:06 PM] 127.0.0.1 - - [15/Apr/2015:12:15:06] "GET /public/css/leaflet.css HTTP/1.1" 304 - "http://frackbox.citizensense.net/" "Mozilla/5.0 (X11; Linux x86_64; rv:37.0) Gecko/20100101 Firefox/37.0"
+INFO [04/15/2015 12:15:06 PM] 127.0.0.1 - - [15/Apr/2015:12:15:06] "GET /public/css/jquery-ui.css HTTP/1.1" 304 - "http://frackbox.citizensense.net/" "Mozilla/5.0 (X11; Linux x86_64; rv:37.0) Gecko/20100101 Firefox/37.0"
+INFO [04/15/2015 12:15:06 PM] 127.0.0.1 - - [15/Apr/2015:12:15:06] "GET /public/css/detail.css HTTP/1.1" 304 - "http://frackbox.citizensense.net/" "Mozilla/5.0 (X11; Linux x86_64; rv:37.0) Gecko/20100101 Firefox/37.0"
+INFO [04/15/2015 12:15:06 PM] 127.0.0.1 - - [15/Apr/2015:12:15:06] "GET /public/css/graph.css HTTP/1.1" 304 - "http://frackbox.citizensense.net/" "Mozilla/5.0 (X11; Linux x86_64; rv:37.0) Gecko/20100101 Firefox/37.0"
+INFO [04/15/2015 12:15:06 PM] 127.0.0.1 - - [15/Apr/2015:12:15:06] "GET /public/css/legend.css HTTP/1.1" 304 - "http://frackbox.citizensense.net/" "Mozilla/5.0 (X11; Linux x86_64; rv:37.0) Gecko/20100101 Firefox/37.0"
+INFO [04/15/2015 12:15:07 PM] 127.0.0.1 - - [15/Apr/2015:12:15:07] "GET /public/css/ant.css HTTP/1.1" 304 - "http://frackbox.citizensense.net/" "Mozilla/5.0 (X11; Linux x86_64; rv:37.0) Gecko/20100101 Firefox/37.0"
+INFO [04/15/2015 12:15:07 PM] 127.0.0.1 - - [15/Apr/2015:12:15:07] "GET /public/js/jquery.min.js HTTP/1.1" 304 - "http://frackbox.citizensense.net/" "Mozilla/5.0 (X11; Linux x86_64; rv:37.0) Gecko/20100101 Firefox/37.0"
+INFO [04/15/2015 12:15:07 PM] 127.0.0.1 - - [15/Apr/2015:12:15:07] "GET /public/js/leaflet.js HTTP/1.1" 304 - "http://frackbox.citizensense.net/" "Mozilla/5.0 (X11; Linux x86_64; rv:37.0) Gecko/20100101 Firefox/37.0"
+INFO [04/15/2015 12:15:07 PM] 127.0.0.1 - - [15/Apr/2015:12:15:07] "GET /api/viewmarkers?_=1429096507112 HTTP/1.1" 200 53061 "http://frackbox.citizensense.net/" "Mozilla/5.0 (X11; Linux x86_64; rv:37.0) Gecko/20100101 Firefox/37.0"
+INFO [04/15/2015 12:15:07 PM] 127.0.0.1 - - [15/Apr/2015:12:15:07] "GET /public/images/shadow.png HTTP/1.1" 304 - "http://frackbox.citizensense.net/" "Mozilla/5.0 (X11; Linux x86_64; rv:37.0) Gecko/20100101 Firefox/37.0"
+INFO [04/15/2015 12:15:07 PM] 127.0.0.1 - - [15/Apr/2015:12:15:07] "GET /public/images/30.gif HTTP/1.1" 304 - "http://frackbox.citizensense.net/" "Mozilla/5.0 (X11; Linux x86_64; rv:37.0) Gecko/20100101 Firefox/37.0"
+INFO [04/15/2015 12:15:07 PM] 127.0.0.1 - - [15/Apr/2015:12:15:07] "GET /public/images/27.gif HTTP/1.1" 304 - "http://frackbox.citizensense.net/" "Mozilla/5.0 (X11; Linux x86_64; rv:37.0) Gecko/20100101 Firefox/37.0"
+INFO [04/15/2015 12:15:58 PM] 
+============APP STARTUP=====================
+DEBUG [04/15/2015 12:15:58 PM] Database structure:
+DEBUG [04/15/2015 12:15:58 PM] OrderedDict([('nodes', [('nid', 'INTEGER PRIMARY KEY'), ('apikey', 'TEXT unique'), ('created', 'INTEGER'), ('createdhuman', 'DATETIME DEFAULT CURRENT_TIMESTAMP'), ('updated', 'INTEGER'), ('title', 'TEXT'), ('csvfile', 'TEXT'), ('description', 'TEXT'), ('datatype', 'TEXT'), ('lat', 'REAL'), ('lon', 'REAL'), ('fuzzylatlon', 'TEXT'), ('tags', 'TEXT'), ('createdby', 'INTEGER'), ('submissiondata', 'JSON'), ('latest', 'JSON'), ('visible', 'INTEGER')]), ('csvs', [('cid', 'INTEGER PRIMARY KEY'), ('nid', 'INTEGER'), ('created', 'INTEGER'), ('header', 'TEXT'), ('timestamp', 'INTEGER'), ('csv', 'TEXT')]), ('annotations', [('aid', 'INTEGER PRIMARY KEY'), ('nid', 'INTEGER'), ('uid', 'INTEGER'), ('timestamp', 'INTEGER'), ('text', 'TEXT'), ('created', 'INTEGER')]), ('locals', {'path': [], 'success': {}, 'info': {}, 'submitted': {}, 'altresponse': '', 'filestosave': [], 'body': '', 'errors': {}})])
+INFO [04/15/2015 12:15:58 PM] Finished DB initialisation: 
+====--database build()=====
+SELECT * FROM sqlite_master WHERE type='table' AND name='nodes';
+Found a table/database so didn't recreate it
+
+SELECT * FROM sqlite_master WHERE type='table' AND name='csvs';
+Found a table/database so didn't recreate it
+
+SELECT * FROM sqlite_master WHERE type='table' AND name='annotations';
+Found a table/database so didn't recreate it
+
+INFO [04/15/2015 12:15:58 PM] [15/Apr/2015:12:15:58] ENGINE Listening for SIGUSR1.
+INFO [04/15/2015 12:15:58 PM] [15/Apr/2015:12:15:58] ENGINE Listening for SIGHUP.
+INFO [04/15/2015 12:15:58 PM] [15/Apr/2015:12:15:58] ENGINE Listening for SIGTERM.
+INFO [04/15/2015 12:15:58 PM] [15/Apr/2015:12:15:58] ENGINE Bus STARTING
+INFO [04/15/2015 12:15:58 PM] [15/Apr/2015:12:15:58] ENGINE Started monitor thread '_TimeoutMonitor'.
+INFO [04/15/2015 12:15:58 PM] [15/Apr/2015:12:15:58] ENGINE Started monitor thread 'Autoreloader'.
+INFO [04/15/2015 12:15:58 PM] [15/Apr/2015:12:15:58] ENGINE Serving on http://0.0.0.0:8787
+INFO [04/15/2015 12:15:58 PM] [15/Apr/2015:12:15:58] ENGINE Bus STARTED
+INFO [04/15/2015 12:16:13 PM] [15/Apr/2015:12:16:13] ENGINE Keyboard Interrupt: shutting down bus
+INFO [04/15/2015 12:16:13 PM] [15/Apr/2015:12:16:13] ENGINE Bus STOPPING
+INFO [04/15/2015 12:16:13 PM] [15/Apr/2015:12:16:13] ENGINE HTTP Server cherrypy._cpwsgi_server.CPWSGIServer(('0.0.0.0', 8787)) shut down
+INFO [04/15/2015 12:16:13 PM] [15/Apr/2015:12:16:13] ENGINE Stopped thread '_TimeoutMonitor'.
+INFO [04/15/2015 12:16:13 PM] [15/Apr/2015:12:16:13] ENGINE Stopped thread 'Autoreloader'.
+INFO [04/15/2015 12:16:13 PM] [15/Apr/2015:12:16:13] ENGINE Bus STOPPED
+INFO [04/15/2015 12:16:13 PM] [15/Apr/2015:12:16:13] ENGINE Bus EXITING
+INFO [04/15/2015 12:16:13 PM] [15/Apr/2015:12:16:13] ENGINE Bus EXITED
+INFO [04/15/2015 12:16:13 PM] [15/Apr/2015:12:16:13] ENGINE Waiting for child threads to terminate...
+INFO [04/15/2015 12:16:13 PM] [15/Apr/2015:12:16:13] ENGINE Waiting for thread Thread-1.

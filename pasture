@@ -15,7 +15,7 @@ import config, threading
 def get_config():
     # Global config - applies to all application instances
     CONFIG = config.init()
-    startlogging(CONFIG['LOGFILE'], logging.DEBUG)
+    startlogging(CONFIG['LOGFILE'], logging.INFO)
     cherrypy.config.update({
         'server.socket_host': '0.0.0.0',
         'server.socket_port': CONFIG['SERVERPORT'],
