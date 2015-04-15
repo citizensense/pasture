@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 import cherrypy, json, csv, re, time, datetime, uuid, os, sys,string, subprocess, arrow
+import logging
 from collections import OrderedDict
 from database import *
 # TODO: Remove this from model & keep in view..
@@ -174,11 +175,8 @@ class Model:
 
     # DELETE AN ANNOTATION
     def delete_annotation(self, aid, data):
-        #print(data)
         resp = {'code':'KO','msg':''}
         user = self.validuser(data['username'], data['password'], data['sessionid'] )  
-        #print('====USER=====')
-        #print(user)  
         # Check if this user can delete this node
         if user == False:
             resp['msg'] = 'User not recognised. Try refreshing the page.'
@@ -191,7 +189,6 @@ class Model:
             intable = 'annotations'
             returnfields = ['aid']
             anno = self.db.searchfor(intable, returnfields, searchfor)
-            print(self.db.msg)
             if anno is not None:
                 candelete = True
             else:
@@ -206,7 +203,6 @@ class Model:
             else:
                 resp['msg'] = 'Database Error:\n {}'.format(self.db.msg) 
             # Update the database
-        #return response
         return resp
     
     # View a single annotation
@@ -239,7 +235,7 @@ class Model:
             ('values',[valuelist])  
         ]) 
         nid = self.db.create('nodes', newnode)
-        print(self.db.msg)
+        logging.info('Attempted to create new marker: {}'.format(self.db.msg))
         if nid == None or False: data['errors']['dbcreatenode'] = 'Database could not create node'
         else: data['info']['nid'] = nid
         return data
@@ -249,7 +245,6 @@ class Model:
         fields = ['nid', 'lat', 'lon', 'title', 'visible', 'datatype', 'latest', 'created', 'updated']
         qry = ' WHERE visible=1 {}'.format(qry)  
         jsondisplay = self.db.readasjson('nodes', fields, [], qry)
-        print(self.db.msg)
         if jsondisplay:
             return jsondisplay
         else:
@@ -327,7 +322,6 @@ class Model:
             try:
                 for ano in annotations:
                     timestamp = int(ano[1]+timeadjcalc)
-                    print(timestamp)
                     mydate = datetime.datetime.fromtimestamp(timestamp).strftime('%d %b %Y %H:%M:%S ({}GMT)'.format(timeadj))
                     annotations[i] = (ano[0], ano[1], ano[2], mydate, ano[3])
                     i+=1
@@ -395,7 +389,6 @@ class Model:
     # UPDATE SPECIFIED FIELDS OF A NODE
     def update_node(self, nid, fieldsnvalues):
         update = self.db.update('nodes', 'nid', int(nid), fieldsnvalues)
-        print(self.db.update)
         if update:return True
         else: return False
 
@@ -416,7 +409,6 @@ class Model:
             intable = 'nodes'
             returnfields = ['nid', 'createdby']
             node = self.db.searchfor(intable, returnfields, searchfor)
-            print(self.db.msg)
             if node is not None:
                 candelete = True
             else:
@@ -433,7 +425,6 @@ class Model:
                 response['success']['completed'] = 'Marker has been deleted' 
             else:
                 response['errors']['failed'] = 'Error: Failed to delete marker' 
-            print(self.db.msg)
         return response
     
     # MANAGE USER SESSIONS
@@ -502,18 +493,15 @@ class Model:
             else:
                 msg += '\n No session id, No username, No password'
             msg += '\n'+str(len(cherrypy.config['session']))+' sessions in list'
-            print(msg)
-            print( cherrypy.config['session'] )
+            logging.debug('Sessions Info:{}'.format(msg))
+            logging.debug(cherrypy.config['session'] )
             if loggedin == True:
                 return {'uid':uid, 'username':username, 'sessionid':sessionid, 'permissions':permissions, 'msg':msg}
             else:
-                print(msg)
-                print( cherrypy.config['session'] )
                 return False
         except Exception as e:
             msg += '\nError with user validation: '+str(e)
-            print(msg)
-            print( cherrypy.config['session'] )
+            logging.error("Error Exception in model.py: ".format(msg))
             return False
         
     # MODEL UTILITIES
@@ -696,14 +684,13 @@ class UploadformSubmission:
         intable = 'nodes'
         returnfields = ['nid', 'createdby', 'datatype']
         row = self.model.db.searchfor(intable, returnfields, searchfor)
-        print(self.model.db.msg)
         # This key doesn't exist so go ahead and use it
         if row is None:
             if apikey.strip() != '':self.tosubmit['apikey'] = apikey
         else:
             # Check if the current user can edit the node
             if self.user['uid'] == row[1] or self.user['permissions'] == 'admin':
-                print("SWAPPING KEYS")
+                logging.debug("SWAPPING KEYS")
                 # The key does exist, so lets replace the old value with a new one
                 newkey = str(uuid.uuid1())
                 # UPDATE NODE WHERE
@@ -712,7 +699,6 @@ class UploadformSubmission:
                 idval = row[0]
                 fieldnvalues = {'apikey':newkey}
                 self.model.db.update(table, idname, idval, fieldnvalues)  
-                print(self.model.db.msg)
             else:
                 device = self.data['submitted']['datatype']
                 self.data['errors']['DeviceNameClash'] = 'Someone has already created a marker with this Device name'
@@ -751,8 +737,8 @@ class SpecGatewaySubmission:
                 speckdata =  json.loads(data['submitted']['data'])
                 speckchannels = json.loads(data['submitted']['channel_names'])
             except Exception as e:
-                print('BAD speckdata JSON: '+str(e))
-                print( json.dumps(data) )
+                logging.error('BAD speckdata JSON: '+str(e))
+                logging.error('Speckgateway checksubmission model.py. Exception:'.format(json.dumps(data)) )
                 msg = 'But data could be invalid'
                 speckdata = []
         else: # Not recognised so reject
@@ -769,9 +755,9 @@ class SpecGatewaySubmission:
         intable = 'nodes'
         returnfields = ['nid', 'createdby', 'datatype']
         node = model.db.searchfor(intable, returnfields, searchfor)
-        print(model.db.msg)
-        print('Searched for: '+apikey)
-        print(node)
+        logging.debug(model.db.msg)
+        logging.debug('Searched for: '+apikey)
+        logging.debug(node)
         if node is None:
             data['altresponse'] = '{"result":"KO", "message":"No marker to upload to"}'
             return data
@@ -792,13 +778,11 @@ class SpecGatewaySubmission:
             csvline =  ','.join(map(str, x))
             csvstrlist.append(csvline)
             timestamp = x[0]
-            print('{}: {}'.format(timestamp, csvline))
+            #logging.debug('{}: {}'.format(timestamp, csvline))
             csvvaluelist.append([nid, timestamp, created, csvheader, csvline])
         csvstring = '\n'.join(csvstrlist)
         
         # Now try and save the data to file
-        print('\n=======String to save')
-        print(csvheader+'\n'+csvstring)
         try:
             directory = 'data/csvs/'+str(nid)
             # Check we have a folder
@@ -822,9 +806,7 @@ class SpecGatewaySubmission:
         lateststr = json.dumps(latest)
 
         # Now save the latest data
-        print('NID:'+str(nid))
         model.db.update('nodes', 'nid', nid, {'latest':lateststr, 'updated':int(time.time())})
-        print(model.db.msg)
         
         # And save a copy of the csv in the database (should seperate into seperate fields...)
         newcsvs = OrderedDict([
@@ -832,8 +814,7 @@ class SpecGatewaySubmission:
             ('values', csvvaluelist)  
         ]) 
         resp = model.db.create('csvs', newcsvs)
-        print(model.db.msg)
-        print(newcsvs)
+        logging.debug(newcsvs)
         data['altresponse'] = '{"result":"OK","message":"Upload successful!","payload":{"successful_records":"1","failed_records":"0"}}'
         return data
 
@@ -864,9 +845,6 @@ class CitizenSenseKitSubmission:
         intable = 'nodes'
         returnfields = ['nid', 'createdby', 'datatype']
         node = model.db.searchfor(intable, returnfields, searchfor)
-        #print(model.db.msg)
-        #print('Searched for: '+apikey)
-        #print(node)
         if node is None:
             data['altresponse'] = '{"success":"KO", "errors":[{"serial":"No marker to submit to. Either no serial or not visible"}]}'
             return data
@@ -899,23 +877,21 @@ class CitizenSenseKitSubmission:
                     i += 1
                 lateststr = json.dumps(latest)
         except Exception as e:
-            print('Failed to read POSTED json: '+str(e))
+            logging.error('Failed to read POSTED json: '+str(e))
             data['altresponse'] = '{"success":"KO", "errors":[{"json":"Posted values are not in a recognised json format: {0}"}]}'.format(str(e))
             return data
         
-        # 
-        print('===========Attempt to save=======')
-        print('Latest')
-        print(json.dumps(latest))
+        logging.debug('===========Attempt to save CSK=======')
+        logging.debug(json.dumps(latest))
 
         # Now update the node and save the 'latest' data
         success = model.db.update('nodes', 'nid', nid, {'latest':lateststr, 'updated':int(time.time())})
         if success is not True:
-            print('Failed: To save \'latest\' data in node')
+            logging.error('Failed: To save \'latest\' data in node')
             data['altresponse'] = '{"success":"KO", "errors":[{"database":"Unable to update node "}]}'
             return data
         else:
-            print('Sucess: Saved latest in node:')
+            logging.debug('Sucess: Saved latest in node:')
             
         # And now create a new csv record
         newcsvs = OrderedDict([
@@ -924,11 +900,11 @@ class CitizenSenseKitSubmission:
         ]) 
         resp = model.db.create('csvs', newcsvs)
         if resp is not None:
-            print('Failed: To create new csvDBrecord')
+            logging.error('Failed: To create new csvDBrecord')
             data['altresponse'] = '{"success":"KO", "errors":[{"database":"Unable to create new csv records in database"}]}'
             return data
         else:
-            print('Sucess: Created new csvDBrecord')
+            logging.debug('Sucess: Created new csvDBrecord')
 
         # Now try and save the data to file
         csvheader = ','.join(keys)
@@ -941,14 +917,15 @@ class CitizenSenseKitSubmission:
             # Now save the file
             myfile = '{}/{}.csv'.format(directory, nid)
             cherrypy.config['datalogger'].log(myfile, csvheader, csvvalues)
-            print('Save to file: Sucess')
+            logging.debug('Save to file: Success')
         except Exception as e: 
-            print('Couldn\'t save data to file')
+            logging.error('Couldn\'t save data to file')
+            logging.error(data)
             data['altresponse'] =  '{"success":[{"OK":"Data saved to database but not file"}], "errors":[]}'
             return data
         
         # All done we have complete sucess
-        print("Sucess, we have save new data to DB and file for marker: "+str(nid))
+        logging.debug("Sucess, we have save new data to DB and file for marker: "+str(nid))
         data['altresponse'] = '{"success":"Saved submitted data", "errors":[]}'
         return data
 

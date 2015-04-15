@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-import os, subprocess, sys, time
+import os, subprocess, sys, time, logging
 
 # Class to save cvs data to file
 class LogCsvData:
@@ -10,15 +10,13 @@ class LogCsvData:
             # Lets check if the datafile exists
             if not os.path.isfile(filepath):
                 # Create the file
-                #print('Create the file: '+filepath)
                 self.savestring(filepath, header)
             csv = csv.strip()
             if len(csv) != 0:
-                #print('Save the string: '+filepath)
                 self.savestring(filepath, csv)
             return True
         except Exception as e:
-            print('\n ==== log() exception:\n'+str(e))
+            logging.error('LogCsvData.py log() exception:\n'+str(e))
             return False
     
     # Create a directory at the specified path
@@ -26,10 +24,8 @@ class LogCsvData:
         # Check the new name doesn't already exist
         if not os.path.exists(path):
             os.makedirs(path)
-            #print('created:'+path)
             return True
         else :
-            #print('path already exists: '+path)
             return False
  
     # Save a string to a file

@@ -1,8 +1,8 @@
 #GENERAL HELPER CLASSES: FileManager, Switch 
-import cherrypy, os, csv, json, threading, subprocess
+import cherrypy, os, csv, json, threading, subprocess, logging
 from collections import OrderedDict
 
-# TODO: Needs a massive cleanup!!
+# TODO: Needs a massive cleanup!! Has lots of legacy code
 # TODO: Move filemanager to its own file
 #=======MANAGE FILES==========================================================#
 class FileManager:
@@ -21,7 +21,7 @@ class FileManager:
                 os.rename(fromdir, todir+sp)
                 trying = False
             except:
-                print('FAILED TO MOVE!!')
+                logging.error('utilities.py | Failed to move file!!')
             n = n+1
             sp = '-'+str(n)
             if n>=1000: trying = False
@@ -116,7 +116,7 @@ class FileManager:
     
     # Save a downloaded file in chunks
     def saveAsChunks(self, myFile, basePath):
-        print(basePath+myFile.filename)
+        logging.debug(basePath+myFile.filename)
         try:
             filepath = os.path.join(basePath, myFile.filename)
             out = "length: %s Name: %s Mimetype: %s"
@@ -172,7 +172,6 @@ class FileManager:
         newdir=newdir.zfill(9)
         newfullpath = parentdir+'/'+newdir
         # Check the new name doesn't already exist
-        print('NEW PATH: '+newfullpath)
         success = self.createDirAt(newfullpath)
         # We done what we've needed so lets release the lock
         self.lock.release() 

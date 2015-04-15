@@ -2,7 +2,7 @@
 # This app requires a few modules to be installed:
 # To Install on Arch linux:  pacman -S python-cherrypy python-jinja
 # Core imports
-import cherrypy, os
+import cherrypy, os, logging
 from controllers import Root, WebService
 from taskmanager import TaskManager
 from model import Model
@@ -15,6 +15,7 @@ import config, threading
 def get_config():
     # Global config - applies to all application instances
     CONFIG = config.init()
+    startlogging(CONFIG['LOGFILE'], logging.DEBUG)
     cherrypy.config.update({
         'server.socket_host': '0.0.0.0',
         'server.socket_port': CONFIG['SERVERPORT'],
@@ -32,10 +33,11 @@ def get_config():
     # Initialise the database structure, creating tables if need
     model = Model()
     dbstruct = model.database_structure()
-    print(dbstruct)
+    logging.debug("Database structure:")
+    logging.debug(dbstruct)
     db = Database(cherrypy.config['dbfile'], dbstruct, 'locals')
     db.build()
-    print(db.msg)
+    logging.info("Finished DB initialisation: "+db.msg)
     # Per application config: Define routes
     return {
         '/': {
@@ -81,6 +83,12 @@ def get_app(config=None):
     root = Root()
     root.api = WebService()
     cherrypy.quickstart(root, '/', config)
+
+# Setup logging
+# startlogging("pastureapp.log", logging.INFO) ## DEBUG, INFO, WARNING, ERROR, CRITICAL
+def startlogging(log, loglevel):
+    logging.basicConfig(filename=log, level=loglevel, format='%(levelname)s [%(asctime)s] %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
+    logging.info('\n============APP STARTUP=====================')
 
 # Start the app
 def start():

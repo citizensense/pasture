@@ -212,7 +212,6 @@ class Database:
 if __name__ == "__main__":
     # Setup elements for  example
     import random, time
-    from pprint import pprint
     from collections import OrderedDict   
     # Our database structure as an ordered list
     dbstruct = OrderedDict([
@@ -249,11 +248,9 @@ if __name__ == "__main__":
 
     # Initialise the database
     db = Database("data/db.sqlite3", dbstruct, ignore='locals')
-    print(db.printmsg())  
 
     # BUILD A NEW DATABASE
     db.build()
-    print(db.printmsg())  
 
     # CREATE LIST OF NODES TO INSERT
     newnodes = OrderedDict([
@@ -286,18 +283,14 @@ if __name__ == "__main__":
         nodes += -1
     # Now create a nice new bunch of nodes
     nids = db.create('nodes', newnodes)
-    print(db.msg)  
-    print(nids)
 
     # VIEW ALL NODES IN THE DATBASE
     fields = ['nid', 'created', 'createdhuman', 'updated', 'title', 'datatype', 'lat', 'lon', 'fuzzylatlon', 'latest']
     jsonstr = db.readasjson('nodes', fields)
-    print(db.msg)
     if jsonstr: print('ALL NODES: json response:\n'+jsonstr) 
 
     # VIEW A SINGLE NODE
     jsonstr = db.readasjson('nodes', fields, [1])  
-    print(db.msg)
     if jsonstr: print('SINGLE NODES: json response:\n'+jsonstr)                     
       
     # SEARCH FOR A VALUE AND SEE IF IT EXISTS. Return a row of fields if its exists
@@ -305,16 +298,12 @@ if __name__ == "__main__":
     intable = 'nodes'
     returnfields = ['nid', 'createdby']
     row = db.searchfor(intable, returnfields, searchfor)
-    print(db.msg) 
-    print(row)
   
     # SEARCH FOR ANOTHER VALUE AND SEE IF IT EXISTS. Return a row of fields if its exists
     searchfor = {'nid':2, 'datatype':'bob'}
     intable = 'nodes'
     returnfields = ['nid', 'createdby']
     row = db.searchfor(intable, returnfields, searchfor)
-    print(db.msg) 
-    print(row)
 
     # UPDATE NODE WHERE
     table = 'nodes'
@@ -322,7 +311,6 @@ if __name__ == "__main__":
     idval= 1
     fieldnvalues = {'title':'Changed!!', 'apikey':'changed'}
     db.update(table, idname, idval, fieldnvalues)  
-    print(db.msg)
 
 
 

@@ -3,7 +3,7 @@
 # Helpfull Multithreading Resource: 
 #   http://www.troyfawkes.com/learn-python-multithreading-queues-basics
 #==============================================================================#
-import cherrypy, threading, time, uuid   
+import cherrypy, threading, time, uuid, logging
 from queue import Queue
 from utilities import Switch 
 
@@ -30,13 +30,13 @@ class TaskManager:
                 # A test so we can easily track things
                 if case('test'):
                     break
-            print("COMPLETED "+thistask['type']+" UID: "+thistask['uid']+" START:"+thistask['start']+" FIN: "+mytime)
+            logging.debug("COMPLETED "+thistask['type']+" UID: "+thistask['uid']+" START:"+thistask['start']+" FIN: "+mytime)
             self.q.task_done()
     
     # Add a new task to the queue in the form of: {'type':'create_node','data':data}
     def add(self, task):
         task['uid'] = str( uuid.uuid1() )
-        print('ADDED NEW TASK TO THE QUEUE: '+task['uid'])
+        logging.debug('ADDED NEW TASK TO THE QUEUE: '+task['uid'])
         task['start'] = str(time.time())
         self.q.put(task)
         return task['uid']

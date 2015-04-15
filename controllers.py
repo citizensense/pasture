@@ -1,5 +1,6 @@
 # Imports and base vars
 import cherrypy, os, os.path, re, time, shutil, random, string, itertools, json, uuid
+import logging
 from utilities import Switch
 from jinja2 import Environment, PackageLoader
 from model import *
@@ -56,8 +57,8 @@ class WebService(object):
 
     # Response to a DELETE request   
     def DELETE(self, *vpath, **kwargs):
-        print('============DELETE=============')
-        print(vpath)
+        logging.debug('DELETE REQUEST:')
+        logging.debug(vpath)
         model = Model();
         #cherrypy.session.pop('mystring', None)
         #TODO: Could be much neater!
@@ -85,6 +86,7 @@ class WebService(object):
 
     # Response to a POST
     def POST(self, *args, **kwargs):
+        logging.debug('POST REQUEST')
         # Initialise our data structure
         model = Model()  
         dbstruct = model.database_structure()
@@ -110,13 +112,13 @@ class WebService(object):
         # Parse the POST submission and determin what to do with the data
         data = model.parse_submission(data)
         # Issue a response to the POST
-        print('\n===POST RESPONSE ====================')
-        print(data)
+        logging.debug('POST RESPONSE')
+        logging.debug(data)
         return data
     
     # Write changes 
     def PUT(self, *path, **data):
-        print('\n===PUT====================') 
+        logging.debug('PUT REQUEST') 
         model = Model();
         # Checking for the following kind of URL: update/annotation/23
         command = self.grab(path, 0)
@@ -133,6 +135,8 @@ class WebService(object):
             cherrypy.response.headers['Content-Type']= 'text/json' 
             resp = {'code':'KO', 'msg':'Error updating: Incomplete or invalid URL\n{}'.format(url)} 
             response = json.dumps(resp)
+        logging.debug('PUT RESPONSE')
+        logging.debug(response)
         return response
     
     def MESSAGES(self):
