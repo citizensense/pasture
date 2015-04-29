@@ -608,6 +608,7 @@ jQuery(document).ready(function(){
         // Setup the base map
         // map = L.map('map').setView([lat, lon], zoom);
         var tilelayer = "http://{s}.tiles.mapbox.com/v3/openplans.map-g4j0dszr/{z}/{x}/{y}.png";
+        tilelayer = "http://{s}.tile.osm.org/{z}/{x}/{y}.png"
         //var tilelayer = "http://{s}.tile.stamen.com/watercolor/{z}/{x}/{y}.jpg"; //L.control.scale().addTo(map);
         L.tileLayer(tilelayer, {
             attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://mapbox.com">Mapbox</a>',
