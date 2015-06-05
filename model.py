@@ -795,15 +795,22 @@ class SpecGatewaySubmission:
             return data
         
         # And create a 'latest' summary for the display in a nice key:value json string
-        latest = OrderedDict()
-        values = speckdata[-1]
-        i = 0
-        for key in headerlist: 
-            if key == 'raw_particles' : key = 'raw'
-            if key == 'particle_concentration' : key = 'concentration'
-            latest[key] = values[i]
-            i += 1
-        lateststr = json.dumps(latest)
+        try: 
+            latest = OrderedDict()
+            values = speckdata[-1]
+            print('THE SPECK DATA')
+            print(json.dumps( speckdata ))
+            i = 0
+            for key in headerlist:
+                #print(key)
+                if key == 'raw_particles' : key = 'raw'
+                if key == 'particle_concentration' : key = 'concentration'
+                latest[key] = values[i]
+                i += 1
+            lateststr = json.dumps(latest)
+        except:
+            data['altresponse'] = '{"result":"KO","message":"Unable to create summary"}'
+            return data
 
         # Now save the latest data
         model.db.update('nodes', 'nid', nid, {'latest':lateststr, 'updated':int(time.time())})

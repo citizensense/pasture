@@ -19,4 +19,4 @@ KillProcess pasture
 
 # And start the process
 ./pasture > /dev/null &
-
+#./pasture

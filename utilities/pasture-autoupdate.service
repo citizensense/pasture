@@ -1,0 +1,11 @@
+[Unit]
+Description=Pasture Auto-Update
+
+[Service]
+ExecStart=/srv/webapps/frackbox/utilities/autoupdate.sh
+ExecStop=/srv/webapps/frackbox/utilities/autoupdatestop.sh
+Type=simple
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

@@ -1,43 +1,66 @@
 #!/bin/python3
-import time, sqlite3, json
+import sys, logging, time, sqlite3, json
 from datetime import datetime
 
+# setup logging
+debug=False
+logger = logging.getLogger('pasture')
+hdlr = logging.FileHandler('/var/log/pasture/pasture.log')
+formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+hdlr.setFormatter(formatter)
+logger.addHandler(hdlr) 
+logger.setLevel(logging.WARNING)
+
 def run():
+    log('ERROR', '---------------STARTED AUTO UPDATE-----------------------------------------')
+    # Grab DB name from commandline
+    if len(sys.argv) <= 1:
+        print('Specify a database: $ genFBnSPtables.py /srv/webapps/frackbox/data/db.sqlite3COPY')
+        exit()
+    databasefile = sys.argv[1] 
     # Connect to database and create the new frackbox table
-    db = sqlite3.connect('db.sqlite3')
-    frackboxes = ['1','2','3','4','6','8','14','15','234','309','335','336']
+    db = sqlite3.connect(databasefile)
+    # Grab a list of frackboxes
+    qry = 'SELECT nid,title FROM nodes WHERE datatype="frackbox"';
+    cursor = db.execute(qry)
+    frackboxes = []
+    for row in cursor:
+        frackboxes.append(str(row[0]))
+    # Now generate the data
     genfrackboxdata(db, frackboxes)
     genspeckdata(db, frackboxes)
+    db.close()  
+    log('ERROR','FINISHED genFBnSPtables.py')
 
 def genspeckdata(db, frackboxes):
     # Create the new frackbox table
     #db.execute("DROP TABLE speckdata;")
-    createtableqry = specktable()
-    db.execute(createtableqry)
+    #createtableqry = specktable()
+    #db.execute(createtableqry)
     # Now generate the new data
     ands = ' AND nid!='.join(frackboxes)
-    qry="SELECT DISTINCT cid, nid, created, header, timestamp, csv FROM csvs WHERE nid!={}".format(ands)
+    cursor = db.execute('SELECT sid,timestamp FROM speckdata ORDER BY sid DESC LIMIT 1;')
+    count = cursor.fetchone()
+    qry="SELECT DISTINCT cid, nid, created, header, timestamp, csv FROM csvs WHERE cid>{} AND nid!={} ORDER BY cid ASC;".format(count[0], ands)
     cursor = db.execute(qry)
+    print('count:{} qry:{}'.format(count[0], qry))
     # Now loop through the rows and create new rows in the frackbox table
     i=n=1
+    cursorexi = db.cursor()
     for row in cursor:
         qry = speckqrystring(row)
-        if row[0] == 58923: 
-            print('FOUND: 58923-----------------------------------------------------------------------------------')
-            print(qry)
+        #print('i:{} cid:{}'.format(i, row[0]))
         try:
-            db.execute(qry) 
+            cursorexi.execute(qry) 
         except Exception as e:
-            #print('\n')
-            #print(e)
-            #print(row)
-            #print(qry)
-            pass
+            log('ERROR', 'function:genspeckdata() e:{} row:{} qry:{}'.format(e, row, qry))
+            print('count:{}'.format(count[0]))
+            exit()
         # Every 5000 records, commit the updates
         if n > 50000: 
             print(qry) 
             n=0 
-            db.commit()
+            #db.commit()
         n=n+1
         i=i+1
     db.commit()
@@ -46,25 +69,29 @@ def genspeckdata(db, frackboxes):
 def genfrackboxdata(db, frackboxes):
     # Create the new frackbox table
     #db.execute("DROP TABLE frackboxV1data;")
-    createtableqry = frackboxtable()
-    db.execute(createtableqry)
+    #createtableqry = frackboxtable()
+    #db.execute(createtableqry)
     # Now generate the new data
     ands = ' OR nid='.join(frackboxes)
-    qry="SELECT DISTINCT cid, nid, created, header, timestamp, csv FROM csvs WHERE nid={}".format(ands)
+    cursor = db.execute('SELECT fid,timestamp FROM frackboxV1data ORDER BY fid DESC LIMIT 1;')
+    count = cursor.fetchone()
+    qry="SELECT DISTINCT cid, nid, created, header, timestamp, csv FROM csvs WHERE cid>{} AND (nid={})".format(count[0], ands)
+    print(qry)
     cursor = db.execute(qry)
     # Now loop through the rows and create new rows in the frackbox table
     i=n=1
     for row in cursor:
         qry = frackboxqrystring(row)
+        #print(row[0])
         try:
             db.execute(qry) 
-        except:
-            pass
+        except Exception as e:
+            log('ERROR', 'function:genfrackboxdata() e:{} row:{} qry:{}'.format(e, row, qry))
         # Every 5000 records, commit the updates
         if n > 50000: 
             print(qry) 
             n=0 
-            db.commit()
+            #db.commit()
         n=n+1
         i=i+1
     db.commit()
@@ -72,14 +99,16 @@ def genfrackboxdata(db, frackboxes):
  
 
 def frackboxtable():
-    return "CREATE TABLE frackboxV1data(fid INT PRIMARY KEY NOT NULL,nid INT,timestamp INT,localdate TEXT,lat REAL,lon REAL,speed REAL,alt REAL,
-    XTemp REAL,XHumid REAL,winddir TEXT,NOppb REAL,O3ppb REAL,O3no2ppb REAL,NO2ppb REAL,PIDppm REAL,PID REAL,NOwe3 INT,
-    NOae3 INT,O3we2 INT,O3ae2 INT,NO2we1 INT,NO2ae1 INT,PT INT,CPU TEXT,Disk TEXT,Load TEXT,network TEXT,ws INT,wd INT)"
-
+    pass
+    #return "CREATE TABLE frackboxV1data(fid INT PRIMARY KEY NOT NULL,nid INT,timestamp INT,localdate TEXT,lat REAL,lon REAL,speed REAL,alt REAL,
+    #XTemp REAL,XHumid REAL,winddir TEXT,NOppb REAL,O3ppb REAL,O3no2ppb REAL,NO2ppb REAL,PIDppm REAL,PID REAL,NOwe3 INT,
+    #NOae3 INT,O3we2 INT,O3ae2 INT,NO2we1 INT,NO2ae1 INT,PT INT,CPU TEXT,Disk TEXT,Load TEXT,network TEXT,ws INT,wd INT, wid_timestamp INT)"
+    
 def specktable():
+    pass
     # timestamp,raw_particles,particle_concentration,humidity
-    return "CREATE TABLE speckdata(sid INT PRIMARY KEY NOT NULL, nid INT, timestamp INT, localdate TEXT, 
-    raw_particles INT, particle_concentration REAL, humidity INT, ws INT, wd INT)"
+    #return "CREATE TABLE speckdata(sid INT PRIMARY KEY NOT NULL, nid INT, timestamp INT, localdate TEXT, 
+    #raw_particles INT, particle_concentration REAL, humidity INT, ws INT, wd INT, wid_timestamp INT)"
 
 def speckqrystring(row):
     csv=row[5]
@@ -97,15 +126,16 @@ def speckqrystring(row):
         humidity=strtoint(vals[3])
         ws = None
         wd = None
-        values=[sid, nid, timestamp, localdate, raw_particles, particle_concentration, humidity, ws, wd]
+        wid_timestamp = None
+        values=[sid, nid, timestamp, localdate, raw_particles, particle_concentration, humidity, ws, wd, wid_timestamp]
         valuesstring = json.dumps(values)
         valuesstring = valuesstring.replace('[','(')
         valuesstring = valuesstring.replace(']',');')
         return 'INSERT INTO speckdata VALUES {}'.format(valuesstring)
     except Exception as e:
         header=''
-        print('\nError nid:{} | {} | \n{}\n{}'.format(nid, e, header,csv))
-
+        #print('\nSpeckError nid:{} | {} | \n{}\n{}'.format(nid, e, header,csv)) 
+        log('ERROR', 'function:speckqrystring() nid:{} e:{} header:{} csv:{}'.format(nid, e, header,csv))
 
 def frackboxqrystring(row):
     csv=row[5]
@@ -144,17 +174,19 @@ def frackboxqrystring(row):
         Disk=vals[23]
         Load=vals[24]
         network=vals[25]
+        wid_timestamp = None
         ws = None
         wd = compass(winddir)
         values=[fid,nid,timestamp,gmtdate,lat,lon,speed,alt,XTemp,XHumid,winddir,NOppb,O3ppb,O3no2ppb,NO2ppb,
-                PIDppm,PID,NOwe3,NOae3,O3we2,O3ae2,NO2we1,NO2ae1,PT,CPU,Disk,Load,network,ws,wd]
+                PIDppm,PID,NOwe3,NOae3,O3we2,O3ae2,NO2we1,NO2ae1,PT,CPU,Disk,Load,network,ws,wd,wid_timestamp]
         valuesstring = json.dumps(values)
         valuesstring = valuesstring.replace('[','(')
         valuesstring = valuesstring.replace(']',');')
         return 'INSERT INTO frackboxV1data VALUES {}'.format(valuesstring)
     except Exception as e:
-        header='fid,nid,timestamp,gmtdate,lat,lon,speed,alt,XTemp,XHumid,winddir,NOppb,O3ppb,O3no2ppb,NO2ppb,PIDppm,PID,NOwe3,NOae3,O3we2,O3ae2,NO2we1,NO2ae1,PT,CPU,Disk,Load,network,ws,wd'
-        print('\nError nid:{} | {} | \n{}\n{}'.format(nid, e, header,csv))
+        header='fid,nid,timestamp,gmtdate,lat,lon,speed,alt,XTemp,XHumid,winddir,NOppb,O3ppb,O3no2ppb,NO2ppb,PIDppm,PID,NOwe3,NOae3,O3we2,O3ae2,NO2we1,NO2ae1,PT,CPU,Disk,Load,network,ws,wd,wid_timestamp'
+        #print('\nError nid:{} | {} | \n{}\n{}'.format(nid, e, header,csv))
+        log('ERROR', 'function:frackboxqrystring() nid:{} e:{} header:{} csv:{}'.format(nid, e, header,csv))  
 
 def gmt(timestamp):
     # Minus 5 hours in seconds
@@ -192,6 +224,13 @@ def compass(baring):
     if baring=='W':d=270
     if baring=='NW':d=315
     return d
+
+
+def log(level, msg):
+    if debug==True: print(msg)
+    if level=='ERROR': 
+        logger.error(msg)
+
 
 # Run the script
 run()
