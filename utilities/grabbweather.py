@@ -13,7 +13,7 @@ logger.setLevel(logging.WARNING)
 
 # Grab the DB name for the commandline
 if len(sys.argv) <= 1:
-    print('Specify a database: $ grabweather.py /srv/webapps/frackbox/data/db.sqlite3COPY')
+    print('Specify a database: $ grabweather.py /srv/webapps/frackbox/data/db.sqlite3')
     exit()
 databasefile = sys.argv[1] 
 
