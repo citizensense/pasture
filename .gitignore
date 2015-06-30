@@ -5,6 +5,7 @@ dustbin/*
 config.py
 data/*
 *.sqlite3
+utilities/data/*
 
 # C extensions
 *.so
