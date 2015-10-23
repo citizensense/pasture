@@ -25,16 +25,11 @@ arrow
 jinja
 cherry.py
 
-## The project team:
-Jennifer Gabrys, Principal Investigator
+## Credits:
+The research leading to these results has received funding from the European Research Council under the European Union's Seventh Framework Programme (FP/2007-2013) / ERC Grant Agreement n. 313347, “Citizen Sensing and Environmental Practice: Assessing Participatory Engagements with Environments through Sensor Technologies.” For more information on the project and contributors, see http://www.citizensense.net
 
-Nick Shapiro, Post-Doctoral Researcher
 
-Nerea Calvillo, Researcher
 
-Tom Keene, Researcher
-
-Helen Pritchard, Researcher
 
 ## License
 Released under the GNU GENERAL PUBLIC LICENSE see LICENCE document for details
